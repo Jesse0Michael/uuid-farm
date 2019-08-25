@@ -1,0 +1,196 @@
+openapi: 3.0.2
+info:
+  description: A farm for abandoned UUIDs
+  title: uuid farm
+  version: v1
+servers:
+- description: uuid farm
+  url: http://uuid-farm.io/v1
+paths:
+  /:
+    get:
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: Success response
+      summary: Farm stats
+  /uuids:
+    get:
+      description: Get all uuids.
+      operationId: getUUIDs
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/uuid'
+                type: array
+          description: uuid array response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: unexpected error
+      summary: Get uuids
+    post:
+      description: Adopt new uuid that's on the farm.
+      operationId: adoptUUID
+      parameters:
+      - description: uuid
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uuid'
+          description: uuid response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: unexpected error
+      summary: Adopt uuid
+  /uuids/{id}:
+    get:
+      description: Get a uuid that's on the farm.
+      operationId: getUUID
+      parameters:
+      - description: uuid
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uuid'
+          description: uuid response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: unexpected error
+      summary: Get uuid that's on the farm
+    post:
+      description: Give uuid up for adoption.
+      operationId: surrenderUUID
+      parameters:
+      - description: uuid
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uuid'
+          description: uuid response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: unexpected error
+      summary: Surrender uuid
+    put:
+      description: Update uuid that's on the farm.
+      operationId: updateUUID
+      parameters:
+      - description: uuid
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/uuid'
+        description: uuid
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uuid'
+          description: uuid response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+          description: unexpected error
+      summary: Update uuid
+components:
+  schemas:
+    uuid:
+      example:
+        name: name
+        tag: tag
+        adoptionDate: 2000-01-23
+        surrenderDate: 2000-01-23
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+        surrenderDate:
+          format: date
+          type: string
+        adoptionDate:
+          format: date
+          type: string
+      required:
+      - name
+      type: object
+    error:
+      properties:
+        code:
+          example: 400
+          format: int32
+          type: integer
+        message:
+          example: Bad request.
+          type: string
+      required:
+      - code
+      - message
+      type: object
+    inline_response_200:
+      example:
+        uuids: 10
+      properties:
+        uuids:
+          example: 10
+          type: integer
