@@ -1,3 +1,6 @@
 # OpenAPI Generator Ignore
 
-go/api_default.go
+main.go
+uuids/api_default.go
+
+Dockerfile
