@@ -26,7 +26,7 @@ type Route struct {
 
 type Routes []Route
 
-type RouteBinder interface { 
+type RouteBinder interface {
 	AdoptUUID(http.ResponseWriter, *http.Request)
 	GetFarm(http.ResponseWriter, *http.Request)
 	GetUUID(http.ResponseWriter, *http.Request)
@@ -53,7 +53,7 @@ func NewRouter(binder RouteBinder) *mux.Router {
 }
 
 func routes(binder RouteBinder) Routes {
-	return Routes{ 
+	return Routes{
 		{
 			"AdoptUUID",
 			strings.ToUpper("Post"),
