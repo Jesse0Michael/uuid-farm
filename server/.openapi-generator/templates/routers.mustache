@@ -2,7 +2,7 @@
 package {{packageName}}
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -18,9 +18,8 @@ type Route struct {
 
 type Routes []Route
 
-type RouteBinder interface {
-{{#apiInfo}}{{#apis}}{{#operations}}{{#operation}}
-	{{operationId}}() http.HandlerFunc{{/operation}}{{/operations}}{{/apis}}{{/apiInfo}}
+type RouteBinder interface { {{#apiInfo}}{{#apis}}{{#operations}}{{#operation}}
+	{{operationId}}(http.ResponseWriter, *http.Request){{/operation}}{{/operations}}{{/apis}}{{/apiInfo}}
 }
 
 func NewRouter(binder RouteBinder) *mux.Router {
@@ -41,9 +40,7 @@ func NewRouter(binder RouteBinder) *mux.Router {
 }
 
 func routes(binder RouteBinder) Routes {
-	return Routes{
-		{{#apiInfo}}{{#apis}}{{#operations}}{{#operation}}
-
+	return Routes{ {{#apiInfo}}{{#apis}}{{#operations}}{{#operation}}
 		{
 			"{{operationId}}",
 			strings.ToUpper("{{httpMethod}}"),
@@ -51,4 +48,15 @@ func routes(binder RouteBinder) Routes {
 			binder.{{operationId}},
 		},{{/operation}}{{/operations}}{{/apis}}{{/apiInfo}}
 	}
+}
+
+func EncodeJSONResponse(i interface{}, status *int, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if status != nil {
+		w.WriteHeader(*status)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	return json.NewEncoder(w).Encode(i)
 }

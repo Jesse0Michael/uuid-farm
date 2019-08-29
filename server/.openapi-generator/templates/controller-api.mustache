@@ -1,20 +1,44 @@
 {{>partial_header}}
 package {{packageName}}
 
-{{#operations}}
 import (
 	"net/http"
 )
 
 type Controller struct {
+    service Servicer
 }
 
-func NewController() *RouteBinder {
+func NewController(s *Servicer) RouteBinder {
     return &Controller{}
-}{{#operation}}
+}
+
+type Servicer interface { {{#operations}}{{#operation}}
+    {{operationId}}() (interface{}, error){{/operation}}{{/operations}}
+}
+
+// move to separate file
+type APIService struct {
+}
+
+func NewAPIService() Servicer {
+    return &APIService{}
+}{{#operations}}{{#operation}}
+
+// {{nickname}} - {{{summary}}}
+func (s *APIService) {{nickname}}() (interface{}, error) {
+    return nil, nil
+}{{/operation}}{{/operations}}
+// -------{{#operations}}{{#operation}}
 
 // {{nickname}} - {{{summary}}}
 func (c *Controller) {{nickname}} (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.{{nickname}}()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }{{/operation}}{{/operations}}

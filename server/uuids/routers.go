@@ -10,7 +10,7 @@
 package uuids
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -26,14 +26,13 @@ type Route struct {
 
 type Routes []Route
 
-type RouteBinder interface {
-
-	AdoptUUID() http.HandlerFunc
-	GetFarm() http.HandlerFunc
-	GetUUID() http.HandlerFunc
-	GetUUIDs() http.HandlerFunc
-	SurrenderUUID() http.HandlerFunc
-	UpdateUUID() http.HandlerFunc
+type RouteBinder interface { 
+	AdoptUUID(http.ResponseWriter, *http.Request)
+	GetFarm(http.ResponseWriter, *http.Request)
+	GetUUID(http.ResponseWriter, *http.Request)
+	GetUUIDs(http.ResponseWriter, *http.Request)
+	SurrenderUUID(http.ResponseWriter, *http.Request)
+	UpdateUUID(http.ResponseWriter, *http.Request)
 }
 
 func NewRouter(binder RouteBinder) *mux.Router {
@@ -54,44 +53,37 @@ func NewRouter(binder RouteBinder) *mux.Router {
 }
 
 func routes(binder RouteBinder) Routes {
-	return Routes{
-		
-
+	return Routes{ 
 		{
 			"AdoptUUID",
 			strings.ToUpper("Post"),
 			"/v1/uuids",
 			binder.AdoptUUID,
 		},
-
 		{
 			"GetFarm",
 			strings.ToUpper("Get"),
 			"/v1/",
 			binder.GetFarm,
 		},
-
 		{
 			"GetUUID",
 			strings.ToUpper("Get"),
 			"/v1/uuids/{id}",
 			binder.GetUUID,
 		},
-
 		{
 			"GetUUIDs",
 			strings.ToUpper("Get"),
 			"/v1/uuids",
 			binder.GetUUIDs,
 		},
-
 		{
 			"SurrenderUUID",
 			strings.ToUpper("Post"),
 			"/v1/uuids/{id}",
 			binder.SurrenderUUID,
 		},
-
 		{
 			"UpdateUUID",
 			strings.ToUpper("Put"),
@@ -99,4 +91,15 @@ func routes(binder RouteBinder) Routes {
 			binder.UpdateUUID,
 		},
 	}
+}
+
+func EncodeJSONResponse(i interface{}, status *int, w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if status != nil {
+		w.WriteHeader(*status)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	return json.NewEncoder(w).Encode(i)
 }

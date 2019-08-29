@@ -14,44 +14,129 @@ import (
 )
 
 type Controller struct {
+    service Servicer
 }
 
-func NewController() *RouteBinder {
+func NewController(s *Servicer) RouteBinder {
     return &Controller{}
 }
 
+type Servicer interface { 
+    AdoptUUID() (interface{}, error)
+    GetFarm() (interface{}, error)
+    GetUUID() (interface{}, error)
+    GetUUIDs() (interface{}, error)
+    SurrenderUUID() (interface{}, error)
+    UpdateUUID() (interface{}, error)
+}
+
+// move to separate file
+type APIService struct {
+}
+
+func NewAPIService() Servicer {
+    return &APIService{}
+}
+
+// AdoptUUID - Adopt uuid
+func (s *APIService) AdoptUUID() (interface{}, error) {
+    return nil, nil
+}
+
+// GetFarm - Farm stats
+func (s *APIService) GetFarm() (interface{}, error) {
+    return nil, nil
+}
+
+// GetUUID - Get uuid that's on the farm
+func (s *APIService) GetUUID() (interface{}, error) {
+    return nil, nil
+}
+
+// GetUUIDs - Get uuids
+func (s *APIService) GetUUIDs() (interface{}, error) {
+    return nil, nil
+}
+
+// SurrenderUUID - Surrender uuid
+func (s *APIService) SurrenderUUID() (interface{}, error) {
+    return nil, nil
+}
+
+// UpdateUUID - Update uuid
+func (s *APIService) UpdateUUID() (interface{}, error) {
+    return nil, nil
+}
+// -------
+
 // AdoptUUID - Adopt uuid
 func (c *Controller) AdoptUUID (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.AdoptUUID()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }
 
 // GetFarm - Farm stats
 func (c *Controller) GetFarm (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.GetFarm()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }
 
 // GetUUID - Get uuid that's on the farm
 func (c *Controller) GetUUID (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.GetUUID()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }
 
 // GetUUIDs - Get uuids
 func (c *Controller) GetUUIDs (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.GetUUIDs()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }
 
 // SurrenderUUID - Surrender uuid
 func (c *Controller) SurrenderUUID (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.SurrenderUUID()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }
 
 // UpdateUUID - Update uuid
 func (c *Controller) UpdateUUID (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+
+    result, err := c.service.UpdateUUID()
+    if err != nil {
+        w.WriteHeader(500)
+        return
+    }
+	
+    EncodeJSONResponse(result, nil,  w)
 }

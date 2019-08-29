@@ -18,7 +18,9 @@ import (
 func main() {
 	log.Printf("Server started")
 
-	router := sw.NewRouter(sw.NewController())
+    service := sw.NewAPIService()
+    controller := sw.NewController(service)
+	router := sw.NewRouter(controller)
 
 	log.Fatal(http.ListenAndServe(":{{serverPort}}", router))
 }

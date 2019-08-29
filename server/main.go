@@ -13,13 +13,22 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/jesse0michael/uuid-farm/server/uuids"
+	// WARNING!
+	// Change this to a fully-qualified import path
+	// once you place this file into your project.
+	// For example,
+	//
+	//    sw "github.com/myname/myrepo/uuids"
+	//
+	sw "./uuids"
 )
 
 func main() {
 	log.Printf("Server started")
 
-	router := uuids.NewRouter(uuids.NewController())
+    service := sw.NewAPIService()
+    controller := sw.NewController(service)
+	router := sw.NewRouter(controller)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
