@@ -9,6 +9,7 @@ servers:
 paths:
   /:
     get:
+      operationId: getFarm
       responses:
         200:
           content:
@@ -34,7 +35,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/apiError'
           description: unexpected error
       summary: Get uuids
     post:
@@ -61,7 +62,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/apiError'
           description: unexpected error
       summary: Adopt uuid
   /uuids/{id}:
@@ -89,7 +90,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/apiError'
           description: unexpected error
       summary: Get uuid that's on the farm
     post:
@@ -116,7 +117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/apiError'
           description: unexpected error
       summary: Surrender uuid
     put:
@@ -149,7 +150,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/apiError'
           description: unexpected error
       summary: Update uuid
 components:
@@ -174,7 +175,7 @@ components:
       required:
       - name
       type: object
-    error:
+    apiError:
       properties:
         code:
           example: 400

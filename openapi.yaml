@@ -10,6 +10,7 @@ paths:
   /:
     get:
       summary: Farm stats
+      operationId: getFarm
       responses:
         "200":
           description: Success response
@@ -40,7 +41,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/error"
+                $ref: "#/components/schemas/apiError"
     post:
       summary: Adopt uuid
       description: Adopt new uuid that's on the farm.
@@ -65,7 +66,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/error"
+                $ref: "#/components/schemas/apiError"
   /uuids/{id}:
     get:
       summary: Get uuid that's on the farm
@@ -91,7 +92,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/error"
+                $ref: "#/components/schemas/apiError"
     post:
       summary: Surrender uuid
       description: Give uuid up for adoption.
@@ -116,7 +117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/error"
+                $ref: "#/components/schemas/apiError"
     put:
       summary: Update uuid
       description: Update uuid that's on the farm.
@@ -147,7 +148,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/error"
+                $ref: "#/components/schemas/apiError"
 components:
   schemas:
     uuid:
@@ -165,7 +166,7 @@ components:
         adoptionDate:
           type: string
           format: date
-    error:
+    apiError:
       type: object
       required:
         - code

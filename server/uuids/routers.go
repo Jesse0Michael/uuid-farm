@@ -26,9 +26,19 @@ type Route struct {
 
 type Routes []Route
 
-func NewRouter() *mux.Router {
+type RouteBinder interface {
+
+	AdoptUUID() http.HandlerFunc
+	GetFarm() http.HandlerFunc
+	GetUUID() http.HandlerFunc
+	GetUUIDs() http.HandlerFunc
+	SurrenderUUID() http.HandlerFunc
+	UpdateUUID() http.HandlerFunc
+}
+
+func NewRouter(binder RouteBinder) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
-	for _, route := range routes {
+	for _, route := range routes(binder) {
 		var handler http.Handler
 		handler = route.HandlerFunc
 		handler = Logger(handler, route.Name)
@@ -43,57 +53,50 @@ func NewRouter() *mux.Router {
 	return router
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
-}
+func routes(binder RouteBinder) Routes {
+	return Routes{
+		
 
-var routes = Routes{
-	{
-		"Index",
-		"GET",
-		"/v1/",
-		Index,
-	},
+		{
+			"AdoptUUID",
+			strings.ToUpper("Post"),
+			"/v1/uuids",
+			binder.AdoptUUID,
+		},
 
-	{
-		"AdoptUUID",
-		strings.ToUpper("Post"),
-		"/v1/uuids",
-		AdoptUUID,
-	},
+		{
+			"GetFarm",
+			strings.ToUpper("Get"),
+			"/v1/",
+			binder.GetFarm,
+		},
 
-	{
-		"GetUUID",
-		strings.ToUpper("Get"),
-		"/v1/uuids/{id}",
-		GetUUID,
-	},
+		{
+			"GetUUID",
+			strings.ToUpper("Get"),
+			"/v1/uuids/{id}",
+			binder.GetUUID,
+		},
 
-	{
-		"GetUUIDs",
-		strings.ToUpper("Get"),
-		"/v1/uuids",
-		GetUUIDs,
-	},
+		{
+			"GetUUIDs",
+			strings.ToUpper("Get"),
+			"/v1/uuids",
+			binder.GetUUIDs,
+		},
 
-	{
-		"RootGet",
-		strings.ToUpper("Get"),
-		"/v1/",
-		RootGet,
-	},
+		{
+			"SurrenderUUID",
+			strings.ToUpper("Post"),
+			"/v1/uuids/{id}",
+			binder.SurrenderUUID,
+		},
 
-	{
-		"SurrenderUUID",
-		strings.ToUpper("Post"),
-		"/v1/uuids/{id}",
-		SurrenderUUID,
-	},
-
-	{
-		"UpdateUUID",
-		strings.ToUpper("Put"),
-		"/v1/uuids/{id}",
-		UpdateUUID,
-	},
+		{
+			"UpdateUUID",
+			strings.ToUpper("Put"),
+			"/v1/uuids/{id}",
+			binder.UpdateUUID,
+		},
+	}
 }

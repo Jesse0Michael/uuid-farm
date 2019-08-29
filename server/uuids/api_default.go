@@ -13,38 +13,45 @@ import (
 	"net/http"
 )
 
+type Controller struct {
+}
+
+func NewController() *RouteBinder {
+    return &Controller{}
+}
+
 // AdoptUUID - Adopt uuid
-func AdoptUUID(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) AdoptUUID (w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+// GetFarm - Farm stats
+func (c *Controller) GetFarm (w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
 // GetUUID - Get uuid that's on the farm
-func GetUUID(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetUUID (w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
 // GetUUIDs - Get uuids
-func GetUUIDs(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-}
-
-// RootGet - Farm stats
-func RootGet(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetUUIDs (w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
 // SurrenderUUID - Surrender uuid
-func SurrenderUUID(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) SurrenderUUID (w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }
 
 // UpdateUUID - Update uuid
-func UpdateUUID(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) UpdateUUID (w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }

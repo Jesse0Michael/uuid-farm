@@ -19,7 +19,7 @@ import (
 func main() {
 	log.Printf("Server started")
 
-	router := uuids.NewRouter()
+	router := uuids.NewRouter(uuids.NewController())
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
