@@ -10,7 +10,10 @@
 package uuids
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type Controller struct {
@@ -22,12 +25,12 @@ func NewController(s *Servicer) RouteBinder {
 }
 
 type Servicer interface {
-	AdoptUUID() (interface{}, error)
+	AdoptUUID(string) (interface{}, error)
 	GetFarm() (interface{}, error)
-	GetUUID() (interface{}, error)
+	GetUUID(string) (interface{}, error)
 	GetUUIDs() (interface{}, error)
-	SurrenderUUID() (interface{}, error)
-	UpdateUUID() (interface{}, error)
+	SurrenderUUID(string) (interface{}, error)
+	UpdateUUID(string, Uuid) (interface{}, error)
 }
 
 // move to separate file
@@ -39,7 +42,7 @@ func NewAPIService() Servicer {
 }
 
 // AdoptUUID - Adopt uuid
-func (s *APIService) AdoptUUID() (interface{}, error) {
+func (s *APIService) AdoptUUID(id string) (interface{}, error) {
 	return nil, nil
 }
 
@@ -49,7 +52,7 @@ func (s *APIService) GetFarm() (interface{}, error) {
 }
 
 // GetUUID - Get uuid that's on the farm
-func (s *APIService) GetUUID() (interface{}, error) {
+func (s *APIService) GetUUID(id string) (interface{}, error) {
 	return nil, nil
 }
 
@@ -59,12 +62,12 @@ func (s *APIService) GetUUIDs() (interface{}, error) {
 }
 
 // SurrenderUUID - Surrender uuid
-func (s *APIService) SurrenderUUID() (interface{}, error) {
+func (s *APIService) SurrenderUUID(id string) (interface{}, error) {
 	return nil, nil
 }
 
 // UpdateUUID - Update uuid
-func (s *APIService) UpdateUUID() (interface{}, error) {
+func (s *APIService) UpdateUUID(id string, uuid Uuid) (interface{}, error) {
 	return nil, nil
 }
 
@@ -72,8 +75,10 @@ func (s *APIService) UpdateUUID() (interface{}, error) {
 
 // AdoptUUID - Adopt uuid
 func (c *Controller) AdoptUUID(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
 
-	result, err := c.service.AdoptUUID()
+	result, err := c.service.AdoptUUID(id)
 	if err != nil {
 		w.WriteHeader(500)
 		return
@@ -84,7 +89,6 @@ func (c *Controller) AdoptUUID(w http.ResponseWriter, r *http.Request) {
 
 // GetFarm - Farm stats
 func (c *Controller) GetFarm(w http.ResponseWriter, r *http.Request) {
-
 	result, err := c.service.GetFarm()
 	if err != nil {
 		w.WriteHeader(500)
@@ -96,8 +100,10 @@ func (c *Controller) GetFarm(w http.ResponseWriter, r *http.Request) {
 
 // GetUUID - Get uuid that's on the farm
 func (c *Controller) GetUUID(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
 
-	result, err := c.service.GetUUID()
+	result, err := c.service.GetUUID(id)
 	if err != nil {
 		w.WriteHeader(500)
 		return
@@ -108,7 +114,6 @@ func (c *Controller) GetUUID(w http.ResponseWriter, r *http.Request) {
 
 // GetUUIDs - Get uuids
 func (c *Controller) GetUUIDs(w http.ResponseWriter, r *http.Request) {
-
 	result, err := c.service.GetUUIDs()
 	if err != nil {
 		w.WriteHeader(500)
@@ -120,8 +125,10 @@ func (c *Controller) GetUUIDs(w http.ResponseWriter, r *http.Request) {
 
 // SurrenderUUID - Surrender uuid
 func (c *Controller) SurrenderUUID(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
 
-	result, err := c.service.SurrenderUUID()
+	result, err := c.service.SurrenderUUID(id)
 	if err != nil {
 		w.WriteHeader(500)
 		return
@@ -132,8 +139,15 @@ func (c *Controller) SurrenderUUID(w http.ResponseWriter, r *http.Request) {
 
 // UpdateUUID - Update uuid
 func (c *Controller) UpdateUUID(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
 
-	result, err := c.service.UpdateUUID()
+	uuid := &Uuid{}
+	if err := json.NewDecoder(r.Body).Decode(&uuid); err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	result, err := c.service.UpdateUUID(id, uuid)
 	if err != nil {
 		w.WriteHeader(500)
 		return

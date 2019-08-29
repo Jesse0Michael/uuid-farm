@@ -2,7 +2,10 @@
 package {{packageName}}
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type Controller struct {
@@ -14,7 +17,7 @@ func NewController(s *Servicer) RouteBinder {
 }
 
 type Servicer interface { {{#operations}}{{#operation}}
-    {{operationId}}() (interface{}, error){{/operation}}{{/operations}}
+    {{operationId}}({{#allParams}}{{dataType}}{{^last}}, {{/last}}{{/allParams}}) (interface{}, error){{/operation}}{{/operations}}
 }
 
 // move to separate file
@@ -26,15 +29,24 @@ func NewAPIService() Servicer {
 }{{#operations}}{{#operation}}
 
 // {{nickname}} - {{{summary}}}
-func (s *APIService) {{nickname}}() (interface{}, error) {
+func (s *APIService) {{nickname}}({{#allParams}}{{paramName}} {{dataType}}{{^last}}, {{/last}}{{/allParams}}) (interface{}, error) {
     return nil, nil
 }{{/operation}}{{/operations}}
 // -------{{#operations}}{{#operation}}
 
 // {{nickname}} - {{{summary}}}
-func (c *Controller) {{nickname}} (w http.ResponseWriter, r *http.Request) {
-
-    result, err := c.service.{{nickname}}()
+func (c *Controller) {{nickname}}(w http.ResponseWriter, r *http.Request) { {{#hasPathParams}}
+    params := mux.Vars(r){{/hasPathParams}}{{#hasQueryParams}}
+    query := r.URL.Query(){{/hasQueryParams}}
+    {{#allParams}}{{#isPathParam}}{{paramName}} := params["{{paramName}}"]{{/isPathParam}}
+    {{#isQueryParam}}{{paramName}} := query.Get("{{paramName}}"){{/isQueryParam}}
+    {{#isBodyParam}}{{paramName}} := &{{dataType}}{}
+    if err := json.NewDecoder(r.Body).Decode(&{{paramName}}); err != nil {
+        w.WriteHeader(500)
+        return
+    }{{/isBodyParam}}
+    {{/allParams}}
+    result, err := c.service.{{nickname}}({{#allParams}}{{paramName}}{{^last}}, {{/last}}{{/allParams}})
     if err != nil {
         w.WriteHeader(500)
         return
