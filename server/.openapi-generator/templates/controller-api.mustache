@@ -12,7 +12,7 @@ type Controller struct {
     service Servicer
 }
 
-func NewController(s *Servicer) RouteBinder {
+func NewController(s Servicer) RouteBinder {
     return &Controller{}
 }
 
@@ -46,7 +46,7 @@ func (c *Controller) {{nickname}}(w http.ResponseWriter, r *http.Request) { {{#h
         return
     }{{/isBodyParam}}
     {{/allParams}}
-    result, err := c.service.{{nickname}}({{#allParams}}{{paramName}}{{^last}}, {{/last}}{{/allParams}})
+    result, err := c.service.{{nickname}}({{#allParams}}{{#isBodyParam}}*{{/isBodyParam}}{{paramName}}{{^last}}, {{/last}}{{/allParams}})
     if err != nil {
         w.WriteHeader(500)
         return

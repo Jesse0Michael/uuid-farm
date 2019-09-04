@@ -20,7 +20,7 @@ type Controller struct {
 	service Servicer
 }
 
-func NewController(s *Servicer) RouteBinder {
+func NewController(s Servicer) RouteBinder {
 	return &Controller{}
 }
 
@@ -147,7 +147,7 @@ func (c *Controller) UpdateUUID(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
-	result, err := c.service.UpdateUUID(id, uuid)
+	result, err := c.service.UpdateUUID(id, *uuid)
 	if err != nil {
 		w.WriteHeader(500)
 		return
