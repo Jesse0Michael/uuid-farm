@@ -1,6 +1,6 @@
 # OpenAPI Generator Ignore
 
-# main.go
-# uuids/api_default.go
+main.go
+uuids/api_default_service.go
 
 Dockerfile
