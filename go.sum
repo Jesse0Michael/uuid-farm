@@ -2,3 +2,4 @@ github.com/gorilla/mux v1.7.3 h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/jesse0michael/uuid-farm/server v0.0.0-20190829034425-3dd5e8867ca2 h1:dZ6IeBlOKVyKx3BwSmQVtihDGF+num6AUcUFLOmKMmc=
 github.com/jesse0michael/uuid-farm/server v0.0.0-20190829034425-3dd5e8867ca2/go.mod h1:YEFbwAHzgprkCuj7Wx0MrrCHR4SeaL/5S8KqIntrgTU=
+github.com/jesse0michael/uuid-farm/server v0.0.0-20190904050107-2ce095c4b43e h1:FFpsMDgYz51VDZBH1VSDM7LKYlxtHsDZoBw+GzbN9lw=

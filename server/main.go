@@ -13,22 +13,16 @@ import (
 	"log"
 	"net/http"
 
-	// WARNING!
-	// Change this to a fully-qualified import path
-	// once you place this file into your project.
-	// For example,
-	//
-	//    sw "github.com/myname/myrepo/uuids"
-	//
-	sw "./uuids"
+	"github.com/jesse0michael/uuid-farm/server/uuids"
 )
 
 func main() {
 	log.Printf("Server started")
 
-	service := sw.NewAPIService()
-	controller := sw.NewController(service)
-	router := sw.NewRouter(controller)
+	DefaultApiService := uuids.NewDefaultApiService()
+	DefaultApiController := uuids.NewDefaultApiController(DefaultApiService)
+
+	router := uuids.NewRouter(DefaultApiController)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

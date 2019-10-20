@@ -10,5 +10,6 @@
 package uuids
 
 type InlineResponse200 struct {
+
 	Uuids int32 `json:"uuids,omitempty"`
 }

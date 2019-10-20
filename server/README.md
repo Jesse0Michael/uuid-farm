@@ -1,4 +1,4 @@
-# Go API Server for openapi
+# Go API Server for uuids
 
 A farm for abandoned UUIDs
 
@@ -13,7 +13,7 @@ To see how to make this your own, look here:
 [README](https://openapi-generator.tech)
 
 - API version: v1
-- Build date: 2019-08-24T13:20:30.282-07:00[America/Phoenix]
+- Build date: 2019-10-20T04:01:37.849Z[GMT]
 
 
 ### Running the server
@@ -25,12 +25,12 @@ go run main.go
 
 To run the server in a docker container
 ```
-docker build --network=host -t openapi .
+docker build --network=host -t uuids .
 ```
 
 Once image is built use
 ```
-docker run --rm -it openapi 
+docker run --rm -it uuids 
 ```
 
 
