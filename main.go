@@ -15,7 +15,7 @@ import (
 	"net/http"
 
 	firebase "firebase.google.com/go"
-	"github.com/jesse0michael/uuid-farm/server/uuids"
+	"github.com/jesse0michael/uuid-farm/pkg/uuids"
 )
 
 func main() {
