@@ -10,22 +10,34 @@
 package uuids
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+
+	"cloud.google.com/go/firestore"
+)
+
+const (
+	collection = "uuids"
 )
 
 // DefaultApiService is a service that implents the logic for the DefaultApiServicer
-// This service should implement the business logic for every endpoint for the DefaultApi API. 
+// This service should implement the business logic for every endpoint for the DefaultApi API.
 // Include any external packages or services that will be required by this service.
 type DefaultApiService struct {
+	client *firestore.Client
 }
 
 // NewDefaultApiService creates a default api service
-func NewDefaultApiService() DefaultApiServicer {
-	return &DefaultApiService{}
+func NewDefaultApiService(client *firestore.Client) DefaultApiServicer {
+	return &DefaultApiService{
+		client: client,
+	}
 }
 
 // AdoptUUID - Adopt uuid
 func (s *DefaultApiService) AdoptUUID(id string) (interface{}, error) {
+	// s.client.
 	// TODO - update AdoptUUID with the required logic for this service method.
 	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 	return nil, errors.New("service method 'AdoptUUID' not implemented")
@@ -40,28 +52,63 @@ func (s *DefaultApiService) GetFarm() (interface{}, error) {
 
 // GetUUID - Get uuid that&#39;s on the farm
 func (s *DefaultApiService) GetUUID(id string) (interface{}, error) {
-	// TODO - update GetUUID with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-	return nil, errors.New("service method 'GetUUID' not implemented")
+	doc, err := s.client.Collection(collection).Doc(id).Get(context.Background())
+	if err != nil {
+		return nil, errors.New("failed to get uuid")
+	}
+
+	return unmarshalUuid(doc)
 }
 
 // GetUUIDs - Get uuids
 func (s *DefaultApiService) GetUUIDs() (interface{}, error) {
-	// TODO - update GetUUIDs with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-	return nil, errors.New("service method 'GetUUIDs' not implemented")
+	docs, err := s.client.Collection(collection).DocumentRefs(context.Background()).GetAll()
+	if err != nil {
+		return nil, errors.New("failed to get uuids")
+	}
+
+	uuids := make([]Uuid, len(docs))
+	for i, doc := range docs {
+		d, err := doc.Get(context.Background())
+		if err != nil {
+			return nil, errors.New("failed to get uuid")
+		}
+
+		uuid, err := unmarshalUuid(d)
+		if err != nil {
+			return nil, err
+		}
+		uuids[i] = *uuid
+	}
+
+	return uuids, nil
 }
 
 // SurrenderUUID - Surrender uuid
 func (s *DefaultApiService) SurrenderUUID(id string) (interface{}, error) {
-	// TODO - update SurrenderUUID with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-	return nil, errors.New("service method 'SurrenderUUID' not implemented")
+	uuid := Uuid{}
+	_, _, err := s.client.Collection(collection).Add(context.Background(), uuid)
+	if err != nil {
+		return nil, errors.New("failed to surrender uuid")
+	}
+	return uuid, nil
 }
 
 // UpdateUUID - Update uuid
 func (s *DefaultApiService) UpdateUUID(id string, uuid Uuid) (interface{}, error) {
-	// TODO - update UpdateUUID with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-	return nil, errors.New("service method 'UpdateUUID' not implemented")
+	_, err := s.client.Collection(collection).Doc(id).Update(context.Background(), []firestore.Update{})
+	if err != nil {
+		return nil, errors.New("failed to update uuid")
+	}
+	return uuid, nil
+}
+
+func unmarshalUuid(doc *firestore.DocumentSnapshot) (*Uuid, error) {
+	bytes, err := json.Marshal(doc.Data())
+	if err != nil {
+		return nil, errors.New("failed to marshal uuid data")
+	}
+	var uuid *Uuid
+	err = json.Unmarshal(bytes, &uuid)
+	return uuid, err
 }

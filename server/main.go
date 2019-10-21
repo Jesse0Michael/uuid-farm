@@ -10,19 +10,34 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 
+	firebase "firebase.google.com/go"
 	"github.com/jesse0michael/uuid-farm/server/uuids"
 )
 
 func main() {
 	log.Printf("Server started")
 
-	DefaultApiService := uuids.NewDefaultApiService()
-	DefaultApiController := uuids.NewDefaultApiController(DefaultApiService)
+	ctx := context.Background()
+	conf := &firebase.Config{ProjectID: "uuid-farm"}
+	app, err := firebase.NewApp(ctx, conf)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	router := uuids.NewRouter(DefaultApiController)
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer client.Close()
+
+	DefaultAPIService := uuids.NewDefaultApiService(client)
+	DefaultAPIController := uuids.NewDefaultApiController(DefaultAPIService)
+
+	router := uuids.NewRouter(DefaultAPIController)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
