@@ -23,7 +23,7 @@ type DefaultApiController struct {
 }
 
 // NewDefaultApiController creates a default api controller
-func NewDefaultApiController(s DefaultApiServicer) DefaultApiRouter {
+func NewDefaultApiController(s DefaultApiServicer) Router {
 	return &DefaultApiController{ service: s }
 }
 
@@ -69,11 +69,9 @@ func (c *DefaultApiController) Routes() Routes {
 	}
 }
 
-// AdoptUUID - Adopt uuid
+// AdoptUUID - Adopt UUID
 func (c *DefaultApiController) AdoptUUID(w http.ResponseWriter, r *http.Request) { 
-	params := mux.Vars(r)
-	id := params["id"]
-	result, err := c.service.AdoptUUID(id)
+	result, err := c.service.AdoptUUID()
 	if err != nil {
 		w.WriteHeader(500)
 		return
@@ -82,7 +80,7 @@ func (c *DefaultApiController) AdoptUUID(w http.ResponseWriter, r *http.Request)
 	EncodeJSONResponse(result, nil,  w)
 }
 
-// GetFarm - Farm stats
+// GetFarm - Get Farm Stats
 func (c *DefaultApiController) GetFarm(w http.ResponseWriter, r *http.Request) { 
 	result, err := c.service.GetFarm()
 	if err != nil {
@@ -93,7 +91,7 @@ func (c *DefaultApiController) GetFarm(w http.ResponseWriter, r *http.Request) {
 	EncodeJSONResponse(result, nil,  w)
 }
 
-// GetUUID - Get uuid that's on the farm
+// GetUUID - Get UUID
 func (c *DefaultApiController) GetUUID(w http.ResponseWriter, r *http.Request) { 
 	params := mux.Vars(r)
 	id := params["id"]
@@ -106,7 +104,7 @@ func (c *DefaultApiController) GetUUID(w http.ResponseWriter, r *http.Request) {
 	EncodeJSONResponse(result, nil,  w)
 }
 
-// GetUUIDs - Get uuids
+// GetUUIDs - Get UUIDs
 func (c *DefaultApiController) GetUUIDs(w http.ResponseWriter, r *http.Request) { 
 	result, err := c.service.GetUUIDs()
 	if err != nil {
@@ -117,7 +115,7 @@ func (c *DefaultApiController) GetUUIDs(w http.ResponseWriter, r *http.Request) 
 	EncodeJSONResponse(result, nil,  w)
 }
 
-// SurrenderUUID - Surrender uuid
+// SurrenderUUID - Surrender UUID
 func (c *DefaultApiController) SurrenderUUID(w http.ResponseWriter, r *http.Request) { 
 	params := mux.Vars(r)
 	id := params["id"]
@@ -130,7 +128,7 @@ func (c *DefaultApiController) SurrenderUUID(w http.ResponseWriter, r *http.Requ
 	EncodeJSONResponse(result, nil,  w)
 }
 
-// UpdateUUID - Update uuid
+// UpdateUUID - Update UUID
 func (c *DefaultApiController) UpdateUUID(w http.ResponseWriter, r *http.Request) { 
 	params := mux.Vars(r)
 	id := params["id"]

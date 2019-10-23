@@ -11,7 +11,9 @@ package uuids
 
 type Uuid struct {
 
-	Name string `json:"name"`
+	Id string `json:"id"`
+
+	Name string `json:"name,omitempty"`
 
 	Tag string `json:"tag,omitempty"`
 
