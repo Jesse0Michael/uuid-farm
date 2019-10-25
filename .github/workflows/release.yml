@@ -17,8 +17,6 @@ jobs:
 
     - name: Build
       run: |
-        mkdir secrets
-        echo "${{ secrets.FIRESTORE_CREDENTIALS }}" > secrets/firebase_credentials.json
         docker build \
           -t docker.pkg.github.com/jesse0michael/uuid-farm/uuid-farm:${REF##*/} \
           -t registry.heroku.com/uuid-farm/web .
