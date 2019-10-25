@@ -29,7 +29,7 @@ COPY --from=build /go/src/uuids ./
 COPY --from=build /go/src/secrets/ ./
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-ENV GOOGLE_APPLICATION_CREDENTIALS=uuid-farm-firebase-adminsdk-dtm40-eeed54aa7d.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=firebase_credentials.json
 EXPOSE 8080/tcp
 
 ENTRYPOINT ["./uuids"]
