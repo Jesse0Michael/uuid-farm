@@ -1,0 +1,21 @@
+name: Release Workfloe
+on:  
+  push:
+    tags:
+    - '*'
+jobs:
+  release:
+    name: Release UUID Farm
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Build
+      run: docker build -t docker.pkg.github.com/jesse0michael/uuid-farm/uuid-farm:${{ github.ref	}} .
+      
+    - name: Publish
+      run: |
+        docker login docker.pkg.github.com -u Jesse0Michael -p ${{ secrets.GITHUB_SECRET }}
+        docker push docker.pkg.github.com/jesse0michael/uuid-farm/uuid-farm:${{ github.ref	}}
