@@ -19,7 +19,7 @@ const (
 // are specified in GOOGLE_CREDENTIALS
 func WriteGAC() {
 	location, ok := os.LookupEnv(gacLocation)
-	if !ok && !fileExists(location) {
+	if !ok || fileExists(location) {
 		return
 	}
 

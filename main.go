@@ -11,8 +11,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	firebase "firebase.google.com/go"
 	"github.com/jesse0michael/uuid-farm/internal/credentials"
@@ -41,5 +43,10 @@ func main() {
 
 	router := uuids.NewRouter(DefaultAPIController)
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	port := ":8080"
+	if p, ok := os.LookupEnv("PORT"); ok {
+		port = fmt.Sprintf(":%s", p)
+	}
+
+	log.Fatal(http.ListenAndServe(port, router))
 }
