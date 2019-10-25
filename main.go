@@ -15,6 +15,7 @@ import (
 	"net/http"
 
 	firebase "firebase.google.com/go"
+	"github.com/jesse0michael/uuid-farm/internal/credentials"
 	"github.com/jesse0michael/uuid-farm/pkg/uuids"
 )
 
@@ -22,6 +23,7 @@ func main() {
 	log.Printf("Server started")
 
 	ctx := context.Background()
+	credentials.WriteGAC()
 	conf := &firebase.Config{ProjectID: "uuid-farm"}
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {
