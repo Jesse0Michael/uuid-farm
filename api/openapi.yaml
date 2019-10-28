@@ -5,7 +5,7 @@ info:
   version: v1
 servers:
 - description: uuid farm
-  url: http://localhost:8080/v1
+  url: https://uuid-farm.herokuapp.com/v1
 paths:
   /:
     get:

@@ -17,7 +17,6 @@ ENV GO111MODULE=on
 RUN go mod download
 RUN go mod verify
 
-
 # Build project
 ENV CGO_ENABLED=0
 RUN go build -a -installsuffix cgo -o uuids .
