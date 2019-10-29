@@ -38,6 +38,7 @@ jobs:
     - name: Publish Client
       run: |
         cd client/js
+        echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_SECRET }}" > .npmrc
         npm install
         npm run build
         npm publish 
