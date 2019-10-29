@@ -14,14 +14,6 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v1
-      
-    - name: Setup Node
-      uses: actions/setup-node@v1
-      with:
-        registry-url: https://npm.pkg.github.com
-        scope: '@jesse0michael'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
 
     - name: Build
       run: |
@@ -36,6 +28,16 @@ jobs:
         docker login registry.heroku.com -u Jesse0Michael -p ${{ secrets.HEROKU_API_KEY }}
         docker push registry.heroku.com/uuid-farm/web
       
+      
+    - name: Setup Node
+      uses: actions/setup-node@master
+      with:
+        node-version: 12
+        registry-url: https://npm.pkg.github.com
+        scope: '@jesse0michael'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
+        
     - name: Publish Client
       run: |
         cd client/js
