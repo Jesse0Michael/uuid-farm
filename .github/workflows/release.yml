@@ -15,9 +15,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
       
-    - uses: actions/setup-node@v1
+    - name: Setup Node
+      uses: actions/setup-node@v1
       with:
         registry-url: 'https://npm.pkg.github.com'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
 
     - name: Build
       run: |
@@ -38,8 +41,6 @@ jobs:
         npm install
         npm run build
         npm publish 
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
       
     - name: Deploy
       uses: actions/heroku@master
