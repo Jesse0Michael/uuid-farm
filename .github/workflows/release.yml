@@ -33,17 +33,16 @@ jobs:
       uses: actions/setup-node@master
       with:
         node-version: 12
-        registry-url: https://npm.pkg.github.com
-        scope: '@jesse0michael'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
-        
+        registry-url: https://npm.pkg.github.com/
+        scope: '@jesse0michael' 
     - name: Publish Client
       run: |
         cd client/js
         npm install
         npm run build
         npm publish 
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
       
     - name: Deploy
       uses: actions/heroku@master
