@@ -18,7 +18,8 @@ jobs:
     - name: Setup Node
       uses: actions/setup-node@v1
       with:
-        registry-url: 'https://npm.pkg.github.com'
+        registry-url: https://npm.pkg.github.com
+        scope: '@jesse0michael'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
 
