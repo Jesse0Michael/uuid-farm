@@ -1,6 +1,6 @@
 {
   "name": "uuid_farm",
-  "version": "v1",
+  "version": "v0.7.6",
   "description": "A_farm_for_abandoned_UUIDs",
   "license": "Unlicense",
   "main": "dist/index.js",
