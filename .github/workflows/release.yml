@@ -51,14 +51,13 @@ jobs:
           scope: '@jesse0michael'
       
       - name: Build Client
+        working-directory: client/js
         run: |
-          cd client/js
           npm install
           npm run build
       
       - name: Publish Client
-        run: |
-          cd client/js
-          npm publish
+        working-directory: client/js
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
