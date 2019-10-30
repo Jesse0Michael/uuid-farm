@@ -28,26 +28,34 @@ jobs:
         docker login registry.heroku.com -u Jesse0Michael -p ${{ secrets.HEROKU_API_KEY }}
         docker push registry.heroku.com/uuid-farm/web
       
-      
-    - name: Setup Node
-      uses: actions/setup-node@master
-      with:
-        node-version: 12
-        registry-url: https://npm.pkg.github.com/
-        scope: '@jesse0michael' 
-    - name: Publish Client
-      run: |
-        cd client/js
-        echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_SECRET }}" > .npmrc
-        npm install
-        npm run build
-        npm publish 
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
-      
     - name: Deploy
       uses: actions/heroku@master
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       with:
         args: container:release web -a uuid-farm    
+        
+  release-client:
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Checkout
+        uses: actions/checkout@v1
+      
+      - name: Node Setup
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+          registry-url: https://npm.pkg.github.com/
+          scope: '@jesse0michael'
+      
+      - name: Build Client
+        run: |
+          cd client/js
+          npm install
+          npm run build
+      
+      - name: Publish Client
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
