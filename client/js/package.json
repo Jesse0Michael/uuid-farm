@@ -1,5 +1,5 @@
 {
-  "name": "uuid_farm",
+  "name": "@jesse0michael/uuid_farm",
   "version": "v0.7.6",
   "description": "A_farm_for_abandoned_UUIDs",
   "license": "Unlicense",
