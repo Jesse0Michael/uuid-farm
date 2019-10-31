@@ -58,6 +58,9 @@ jobs:
       
       - name: Publish Client
         working-directory: client/js
-        run: npm publish
+        run: |
+          npm config set //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
+          npm config set scope "@jesse0michael"
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
