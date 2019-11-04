@@ -23,7 +23,7 @@ jobs:
       
     - name: Publish Server
       run: |
-        docker login docker.pkg.github.com -u Jesse0Michael -p ${{ secrets.GITHUB_SECRET_2 }}
+        docker login docker.pkg.github.com -u Jesse0Michael -p ${{ secrets.GITHUB_SECRET }}
         docker push docker.pkg.github.com/jesse0michael/uuid-farm/uuid-farm:${REF##*/}
         docker login registry.heroku.com -u Jesse0Michael -p ${{ secrets.HEROKU_API_KEY }}
         docker push registry.heroku.com/uuid-farm/web
@@ -63,4 +63,4 @@ jobs:
           npm config set scope "jesse0michael"
           npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET_2 }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}

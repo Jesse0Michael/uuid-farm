@@ -1,6 +1,6 @@
 {
-  "name": "@jesse0michael/uuid_farm",
-  "version": "v0.7.6",
+  "name": "@jesse0michael/uuid-farm",
+  "version": "v0.9.1",
   "description": "A_farm_for_abandoned_UUIDs",
   "license": "Unlicense",
   "main": "dist/index.js",
@@ -12,7 +12,10 @@
   "browser": {
     "fs": false
   },
-  "repository": "jesse0michael/uuid_farm",
+  "repository": "jesse0michael/uuid-farm",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "dependencies": {
     "@babel/cli": "^7.0.0",
     "superagent": "3.7.0"
