@@ -51,13 +51,13 @@ jobs:
           scope: '@jesse0michael'
       
       - name: Build Client
-        working-directory: client/js
+        working-directory: client/ts
         run: |
           npm install
           npm run build
       
       - name: Publish Client
-        working-directory: client/js
+        working-directory: client/ts
         run: |
           npm config set //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
           npm config set scope "jesse0michael"
