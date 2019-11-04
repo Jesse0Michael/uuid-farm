@@ -12,6 +12,7 @@
   "browser": {
     "fs": false
   },
+  "repository": "jesse0michael/uuid_farm",
   "dependencies": {
     "@babel/cli": "^7.0.0",
     "superagent": "3.7.0"
