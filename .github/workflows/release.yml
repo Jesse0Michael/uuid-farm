@@ -36,6 +36,8 @@ jobs:
         args: container:release web -a uuid-farm    
         
   release-client:
+    env:
+      REF: ${{ github.ref }}
     name: Release Node Client
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +63,7 @@ jobs:
         run: |
           npm config set //npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN
           npm config set scope "jesse0michael"
+          npm version ${REF##*/}
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
