@@ -3,7 +3,10 @@ import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import grey from "@material-ui/core/colors/grey";
 import orange from "@material-ui/core/colors/orange";
 import red from "@material-ui/core/colors/red";
+import * as uuid from "@jesse0michael/uuid-farm";
 import Registrar from "../../components/registrar";
+
+export const uuidFarm = new uuid.DefaultApi();
 
 // All the following keys are optional.
 // We try our best to provide a great default value.

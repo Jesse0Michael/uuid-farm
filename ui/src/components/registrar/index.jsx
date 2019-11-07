@@ -20,7 +20,7 @@ class Registrar extends Component {
 
   render() {
     return (
-      <Paper className="registrar" elevation="7">
+      <Paper className="registrar" elevation={7}>
         <Tabs
           value={this.state.value}
           indicatorColor="secondary"
@@ -30,8 +30,8 @@ class Registrar extends Component {
           <Tab label="Adopt" />
           <Tab label="Surrender" />
         </Tabs>
-        <AdoptPanel value={this.state.value} index={0} />
-        <SurrenderPanel value={this.state.value} index={1} />
+        <AdoptPanel selected={this.state.value} index={0} />
+        <SurrenderPanel selected={this.state.value} index={1} />
       </Paper>
     );
   }
