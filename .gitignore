@@ -1,5 +1,6 @@
 .vscode/
 *.DS_store
+*.firebase
 
 **/node_modules/**
 **/dist/**
