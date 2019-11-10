@@ -4,7 +4,7 @@ import TextField from "@material-ui/core/TextField";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import { withStyles } from "@material-ui/core/styles";
-import { uuidFarm } from "../../containers/app";
+import { uuidFarm, timeSince } from "../../containers/app";
 
 class AdoptPanel extends Component {
   constructor(p) {
@@ -25,10 +25,23 @@ class AdoptPanel extends Component {
   }
 
   handleClick = () => {
+    this.setState({ uuid: null, error: null });
+
     uuidFarm
       .adoptUUID()
-      .then(r => this.setState({ uuid: r.body }))
-      .catch(err => console.log(err));
+      .then(r => {
+        if (r.response.statusCode === 404) {
+          this.setState({ error: "No UUIDs available" });
+        } else if (r.response.statusCode >= 400) {
+          this.setState({ error: "Unexpected error occurred" });
+        } else {
+          this.setState({ uuid: r.body });
+        }
+      })
+      .catch(err => {
+        this.setState({ error: "Unexpected error occurred" });
+        console.log(err);
+      });
   };
 
   render() {
@@ -43,8 +56,13 @@ class AdoptPanel extends Component {
           className={classes.field}
           value={this.state.uuid && this.state.uuid.id}
           helperText={
-            this.state.uuid && `Surrendered: ${this.state.uuid.surrenderDate}`
+            (this.state.uuid &&
+              `Surrendered ${timeSince(
+                new Date(this.state.uuid.surrenderDate)
+              )} ago`) ||
+            this.state.error
           }
+          error={this.state.error}
           disabled
         />
         <Button
@@ -73,7 +91,10 @@ const styles = {
     margin: "auto 40px",
     position: "absolute",
     height: "40px",
-    width: "300px"
+    width: "300px",
+    "& *": {
+      color: "rgba(0, 0, 0, 0.87)"
+    }
   },
   button: {
     top: 0,

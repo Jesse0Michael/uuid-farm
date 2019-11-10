@@ -26,16 +26,29 @@ class SurrenderPanel extends Component {
   }
 
   handleChange = event => {
-    this.setState({ value: event.target.value });
+    this.setState({ value: event.target.value, uuid: null, error: null });
   };
 
   handleClick = () => {
+    this.setState({ uuid: null, error: null });
+
     uuidFarm
       .surrenderUUID(this.state.value)
       .then(r => {
-        this.setState({ uuid: r.body.id });
+        if (r.response.statusCode === 400) {
+          this.setState({ error: "Invalid UUID" });
+        } else if (r.response.statusCode === 409) {
+          this.setState({ error: "UUID already exists" });
+        } else if (r.response.statusCode >= 400) {
+          this.setState({ error: "Unexpected error occurred" });
+        } else {
+          this.setState({ uuid: r.body });
+        }
       })
-      .catch(err => console.log(err));
+      .catch(err => {
+        this.setState({ error: "Unexpected error occurred" });
+        console.log(err);
+      });
   };
 
   render() {
@@ -50,6 +63,8 @@ class SurrenderPanel extends Component {
           className={classes.field}
           label="Enter UUID"
           value={this.state.value}
+          helperText={(this.state.uuid && "UUID accepted") || this.state.error}
+          error={this.state.error}
           onChange={this.handleChange}
         />
         <Button
@@ -78,7 +93,13 @@ const styles = {
     margin: "auto 40px",
     position: "absolute",
     height: "40px",
-    width: "300px"
+    width: "300px",
+    "& .MuiFormHelperText-root.Mui-error": {
+      color: "rgba(200, 0, 0, 0.87)"
+    },
+    "& .MuiFormHelperText-root": {
+      color: "rgba(0, 200, 0, 0.87)"
+    }
   },
   button: {
     top: 0,
