@@ -3,8 +3,8 @@ import PropTypes from "prop-types";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
+import { withStyles } from "@material-ui/core/styles";
 import { uuidFarm } from "../../containers/app";
-import "./surrender.css";
 
 class SurrenderPanel extends Component {
   constructor(p) {
@@ -39,26 +39,23 @@ class SurrenderPanel extends Component {
   };
 
   render() {
+    const { classes } = this.props;
     return (
       <Box
-        p={3}
-        component="div"
-        role="tabpanel"
         hidden={this.state.selected !== this.state.index}
-        id={`surrender-tabpanel-${this.state.index}`}
+        className={classes.panel}
       >
         <TextField
           id="surrender-field"
-          className="surrender-field"
+          className={classes.field}
           label="Enter UUID"
-          margin="normal"
           value={this.state.value}
           onChange={this.handleChange}
         />
         <Button
+          className={classes.button}
           variant="contained"
           color="secondary"
-          className="surrender-button"
           onClick={this.handleClick}
         >
           Surrender
@@ -73,4 +70,29 @@ SurrenderPanel.propTypes = {
   selected: PropTypes.any.isRequired
 };
 
-export default SurrenderPanel;
+const styles = {
+  field: {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    margin: "auto 40px",
+    position: "absolute",
+    height: "40px",
+    width: "300px"
+  },
+  button: {
+    top: 0,
+    bottom: 0,
+    right: 0,
+    margin: "auto 40px",
+    position: "absolute",
+    height: "40px"
+  },
+  panel: {
+    margin: "24px",
+    height: "150px",
+    width: "100%"
+  }
+};
+
+export default withStyles(styles)(SurrenderPanel);

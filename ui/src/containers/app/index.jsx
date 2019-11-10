@@ -27,7 +27,7 @@ const theme = createMuiTheme({
 
 function App() {
   return (
-    <div className="App">
+    <div className="app">
       <MuiThemeProvider theme={theme}>
         <Registrar />
       </MuiThemeProvider>
