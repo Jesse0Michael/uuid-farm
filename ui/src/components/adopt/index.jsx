@@ -1,8 +1,9 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import TextField from "@material-ui/core/TextField";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import TextField from "@material-ui/core/TextField";
 import { withStyles } from "@material-ui/core/styles";
 import { uuidFarm, timeSince } from "../../containers/app";
 
@@ -25,23 +26,26 @@ class AdoptPanel extends Component {
   }
 
   handleClick = () => {
-    this.setState({ uuid: null, error: null });
+    if (!this.state.loading) {
+      this.setState({ uuid: null, error: null, loading: true });
 
-    uuidFarm
-      .adoptUUID()
-      .then(r => {
-        if (r.response.statusCode === 404) {
-          this.setState({ error: "No UUIDs available" });
-        } else if (r.response.statusCode >= 400) {
+      uuidFarm
+        .adoptUUID()
+        .then(r => {
+          if (r.response.statusCode === 404) {
+            this.setState({ error: "No UUIDs available" });
+          } else if (r.response.statusCode >= 400) {
+            this.setState({ error: "Unexpected error occurred" });
+          } else {
+            this.setState({ uuid: r.body });
+          }
+        })
+        .catch(err => {
           this.setState({ error: "Unexpected error occurred" });
-        } else {
-          this.setState({ uuid: r.body });
-        }
-      })
-      .catch(err => {
-        this.setState({ error: "Unexpected error occurred" });
-        console.log(err);
-      });
+          console.log(err);
+        })
+        .then(() => this.setState({ loading: false }));
+    }
   };
 
   render() {
@@ -70,8 +74,10 @@ class AdoptPanel extends Component {
           color="secondary"
           className={classes.button}
           onClick={this.handleClick}
+          disabled={this.state.loading}
         >
-          Adopt
+          {this.state.loading && <CircularProgress size={24} />}
+          {!this.state.loading && "Adopt"}
         </Button>
       </Box>
     );
@@ -102,7 +108,8 @@ const styles = {
     right: 0,
     margin: "auto 40px",
     position: "absolute",
-    height: "40px"
+    height: "40px",
+    width: "80px"
   },
   panel: {
     margin: "24px",

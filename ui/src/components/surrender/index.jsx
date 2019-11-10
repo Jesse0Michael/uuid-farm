@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
 import TextField from "@material-ui/core/TextField";
 import { withStyles } from "@material-ui/core/styles";
 import { uuidFarm } from "../../containers/app";
@@ -30,25 +31,28 @@ class SurrenderPanel extends Component {
   };
 
   handleClick = () => {
-    this.setState({ uuid: null, error: null });
+    if (!this.state.loading) {
+      this.setState({ uuid: null, error: null, loading: true });
 
-    uuidFarm
-      .surrenderUUID(this.state.value)
-      .then(r => {
-        if (r.response.statusCode === 400) {
-          this.setState({ error: "Invalid UUID" });
-        } else if (r.response.statusCode === 409) {
-          this.setState({ error: "UUID already exists" });
-        } else if (r.response.statusCode >= 400) {
+      uuidFarm
+        .surrenderUUID(this.state.value)
+        .then(r => {
+          if (r.response.statusCode === 400) {
+            this.setState({ error: "Invalid UUID" });
+          } else if (r.response.statusCode === 409) {
+            this.setState({ error: "UUID already exists" });
+          } else if (r.response.statusCode >= 400) {
+            this.setState({ error: "Unexpected error occurred" });
+          } else {
+            this.setState({ uuid: r.body });
+          }
+        })
+        .catch(err => {
           this.setState({ error: "Unexpected error occurred" });
-        } else {
-          this.setState({ uuid: r.body });
-        }
-      })
-      .catch(err => {
-        this.setState({ error: "Unexpected error occurred" });
-        console.log(err);
-      });
+          console.log(err);
+        })
+        .then(() => this.setState({ loading: false }));
+    }
   };
 
   render() {
@@ -72,8 +76,10 @@ class SurrenderPanel extends Component {
           variant="contained"
           color="secondary"
           onClick={this.handleClick}
+          disabled={this.state.loading}
         >
-          Surrender
+          {this.state.loading && <CircularProgress size={24} />}
+          {!this.state.loading && "Surrender"}
         </Button>
       </Box>
     );
@@ -107,7 +113,8 @@ const styles = {
     right: 0,
     margin: "auto 40px",
     position: "absolute",
-    height: "40px"
+    height: "40px",
+    width: "120px"
   },
   panel: {
     margin: "24px",
