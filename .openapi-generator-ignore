@@ -2,5 +2,7 @@
 
 main.go
 pkg/uuids/api_default_service.go
+pkg/uuids/api_default.go
+pkg/uuids/routers.go
 
 Dockerfile

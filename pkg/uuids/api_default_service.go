@@ -17,11 +17,20 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
+	gUuid "github.com/google/uuid"
 	"google.golang.org/api/iterator"
 )
 
 const (
 	collection = "uuids"
+)
+
+var (
+	// ErrNotFound is returned when there are no UUIDs available.
+	ErrNotFound = errors.New("No UUIDs available")
+
+	// ErrInvalidUUID is returned when the UUID is invalid.
+	ErrInvalidUUID = errors.New("Invalid UUID")
 )
 
 // DefaultApiService is a service that implents the logic for the DefaultApiServicer
@@ -48,7 +57,7 @@ func (s *DefaultApiService) AdoptUUID() (interface{}, error) {
 
 	if len(docs) == 0 {
 		log.Printf("failed to get adoptable uuid in %s: %s", collection, err)
-		return nil, errors.New("No UUIDs available")
+		return nil, ErrNotFound
 	}
 
 	var uuid Uuid
@@ -130,8 +139,14 @@ func (s *DefaultApiService) GetUUIDs() (interface{}, error) {
 
 // SurrenderUUID - Adds a new uuid to the farm to become available for adoption. Rejects invalid or duplicate uuids.
 func (s *DefaultApiService) SurrenderUUID(id string) (interface{}, error) {
+	_, err := gUuid.Parse(id)
+	if err != nil {
+		log.Printf("Invalid UUID %s: %s", id, err)
+		return nil, ErrInvalidUUID
+	}
+
 	uuid := Uuid{Id: id, SurrenderDate: time.Now().UTC().String()}
-	_, err := s.client.Collection(collection).Doc(id).Create(context.Background(), uuid)
+	_, err = s.client.Collection(collection).Doc(id).Create(context.Background(), uuid)
 	if err != nil {
 		log.Printf("failed to surrender uuid %s: %s", id, err.Error())
 		return nil, err

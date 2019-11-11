@@ -8,6 +8,9 @@ gen:
 	docker run -v ${PWD}:/uuid  openapitools/openapi-generator-cli generate -i /uuid/api/openapi.yaml -g typescript-node -o /uuid/client/ts/ --git-user-id jesse0michael --git-repo-id uuid-farm --additional-properties=npmName=@jesse0michael/uuid-farm,npmVersion=1.0.0
 
 build:
+	go build -o bin/.
+
+build-docker:
 	docker build -t uuid-server .
 
 run:

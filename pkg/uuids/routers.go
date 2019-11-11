@@ -16,8 +16,10 @@ import (
 	"os"
 	"strconv"
 
-    "github.com/gorilla/handlers"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // A Route defines the parameters for an api endpoint
@@ -32,7 +34,7 @@ type Route struct {
 type Routes []Route
 
 // Router defines the required methods for retrieving api routes
-type Router interface { 
+type Router interface {
 	Routes() Routes
 }
 
@@ -44,7 +46,7 @@ func NewRouter(routers ...Router) *mux.Router {
 			var handler http.Handler
 			handler = route.HandlerFunc
 			handler = Logger(handler, route.Name)
-            handler = handlers.CORS()(handler)
+			handler = handlers.CORS()(handler)
 
 			router.
 				Methods(route.Method).
@@ -67,6 +69,38 @@ func EncodeJSONResponse(i interface{}, status *int, w http.ResponseWriter) error
 	}
 
 	return json.NewEncoder(w).Encode(i)
+}
+
+// EncodeErrorResponse inspects an error and writes it to the http response
+func EncodeErrorResponse(err error, w http.ResponseWriter) {
+	switch err {
+	case ErrNotFound:
+		status := 404
+		EncodeJSONResponse(ApiError{Code: 404, Message: ErrNotFound.Error()}, &status, w)
+		return
+
+	case ErrInvalidUUID:
+		status := 400
+		EncodeJSONResponse(ApiError{Code: 400, Message: ErrInvalidUUID.Error()}, &status, w)
+		return
+
+	default:
+		if code := status.Code(err); code != codes.Unknown {
+			switch code {
+			case codes.NotFound:
+				status := 404
+				EncodeJSONResponse(ApiError{Code: 404, Message: "Not Found"}, &status, w)
+				return
+			case codes.AlreadyExists:
+				status := 409
+				EncodeJSONResponse(ApiError{Code: 409, Message: "Conflict"}, &status, w)
+				return
+			}
+		}
+
+		status := 500
+		EncodeJSONResponse(ApiError{Code: 500, Message: "Unexpected error"}, &status, w)
+	}
 }
 
 // ReadFormFileToTempFile reads file data from a request form and writes it to a temporary file
