@@ -14,7 +14,8 @@ class SurrenderPanel extends Component {
     this.state = {
       selected: selected,
       index: index,
-      value: ""
+      value: "",
+      error: ""
     };
   }
 
@@ -37,19 +38,16 @@ class SurrenderPanel extends Component {
       uuidFarm
         .surrenderUUID(this.state.value)
         .then(r => {
-          if (r.response.statusCode === 400) {
-            this.setState({ error: "Invalid UUID" });
-          } else if (r.response.statusCode === 409) {
-            this.setState({ error: "UUID already exists" });
-          } else if (r.response.statusCode >= 400) {
-            this.setState({ error: "Unexpected error occurred" });
-          } else {
-            this.setState({ uuid: r.body });
-          }
+          this.setState({ uuid: r.body });
         })
         .catch(err => {
-          this.setState({ error: "Unexpected error occurred" });
-          console.log(err);
+          if (err.statusCode === 400) {
+            this.setState({ error: "Invalid UUID" });
+          } else if (err.statusCode === 409) {
+            this.setState({ error: "UUID already exists" });
+          } else {
+            this.setState({ error: "Unexpected error occurred" });
+          }
         })
         .then(() => this.setState({ loading: false }));
     }

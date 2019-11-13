@@ -13,7 +13,8 @@ class AdoptPanel extends Component {
     const { selected, index } = p;
     this.state = {
       selected: selected,
-      index: index
+      index: index,
+      error: ""
     };
   }
 
@@ -32,17 +33,14 @@ class AdoptPanel extends Component {
       uuidFarm
         .adoptUUID()
         .then(r => {
-          if (r.response.statusCode === 404) {
-            this.setState({ error: "No UUIDs available" });
-          } else if (r.response.statusCode >= 400) {
-            this.setState({ error: "Unexpected error occurred" });
-          } else {
-            this.setState({ uuid: r.body });
-          }
+          this.setState({ uuid: r.body });
         })
         .catch(err => {
-          this.setState({ error: "Unexpected error occurred" });
-          console.log(err);
+          if (err.statusCode === 404) {
+            this.setState({ error: "No UUIDs available" });
+          } else {
+            this.setState({ error: "Unexpected error occurred" });
+          }
         })
         .then(() => this.setState({ loading: false }));
     }
