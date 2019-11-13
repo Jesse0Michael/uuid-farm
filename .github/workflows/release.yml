@@ -82,14 +82,14 @@ jobs:
           node-version: 12
           registry-url: https://npm.pkg.github.com/
           scope: '@jesse0michael'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
       
       - name: Build Frontend
         working-directory: ui
         run: |
           npm install
           npm run build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_SECRET }}
       
       - name: Deploy Frontend
         uses: w9jds/firebase-action@master
