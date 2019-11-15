@@ -49,34 +49,33 @@ class AdoptPanel extends Component {
   render() {
     const { classes } = this.props;
     return (
-      <Box
-        hidden={this.state.selected !== this.state.index}
-        className={classes.panel}
-      >
-        <TextField
-          id="adopt-field"
-          className={classes.field}
-          value={this.state.uuid && this.state.uuid.id}
-          helperText={
-            (this.state.uuid &&
-              `Surrendered ${timeSince(
-                new Date(this.state.uuid.surrenderDate)
-              )} ago`) ||
-            this.state.error
-          }
-          error={this.state.error}
-          disabled
-        />
-        <Button
-          variant="contained"
-          color="secondary"
-          className={classes.button}
-          onClick={this.handleClick}
-          disabled={this.state.loading}
-        >
-          {this.state.loading && <CircularProgress size={24} />}
-          {!this.state.loading && "Adopt"}
-        </Button>
+      <Box hidden={this.state.selected !== this.state.index}>
+        <Box className={classes.panel}>
+          <TextField
+            id="adopt-field"
+            className={classes.field}
+            value={this.state.uuid && this.state.uuid.id}
+            helperText={
+              (this.state.uuid &&
+                `Surrendered ${timeSince(
+                  new Date(this.state.uuid.surrenderDate)
+                )} ago`) ||
+              this.state.error
+            }
+            error={this.state.error}
+            disabled
+          />
+          <Button
+            variant="contained"
+            color="secondary"
+            className={classes.button}
+            onClick={this.handleClick}
+            disabled={this.state.loading}
+          >
+            {this.state.loading && <CircularProgress size={24} />}
+            {!this.state.loading && "Adopt"}
+          </Button>
+        </Box>
       </Box>
     );
   }
@@ -89,11 +88,7 @@ AdoptPanel.propTypes = {
 
 const styles = {
   field: {
-    top: 0,
-    bottom: 0,
-    left: 0,
-    margin: "auto 40px",
-    position: "absolute",
+    margin: "auto 12px",
     height: "40px",
     width: "300px",
     "& *": {
@@ -101,18 +96,16 @@ const styles = {
     }
   },
   button: {
-    top: 0,
-    bottom: 0,
-    right: 0,
-    margin: "auto 40px",
-    position: "absolute",
+    margin: "auto 12px",
     height: "40px",
     width: "80px"
   },
   panel: {
-    margin: "24px",
     height: "150px",
-    width: "100%"
+    width: "100%",
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-evenly"
   }
 };
 
