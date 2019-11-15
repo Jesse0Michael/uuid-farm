@@ -18,7 +18,7 @@ API defined using the [OPEN API Specification](https://github.com/OAI/OpenAPI-Sp
 
 Go server generated using [Open API generator](https://github.com/OpenAPITools/openapi-generator) with changes made by me [#4038](https://github.com/OpenAPITools/openapi-generator/pull/4038) [#4196](https://github.com/OpenAPITools/openapi-generator/pull/4196) [#4400](https://github.com/OpenAPITools/openapi-generator/pull/4400). The Open API generator builds a convenient API skeleton separates the API routing and service logic into their own interfaces.
 
-###### When trying to use the go-server generated code I found it lacking from what I would normally build in a Golang API server. I saw the opportunity to actually contribute to a real open source repo and shed my imposter syndrome skin to improve the repo for #hacktoberfest2019. Adding and modifying the templates that were used into something that im very pleased with.
+###### When trying to use the go-server generated code I found it lacking from what I would normally build in a Golang API server. I saw the opportunity to actually contribute to a real open source repo and shed my imposter syndrome skin to improve the repo for #hacktoberfest2019. Adding and modifying the [mustache templates](https://mustache.github.io/mustache.5.html) that were used into something that I'm very pleased with.
 
 Node Client generation the [typescript-node](https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/typescript-node.md) Openapi generator to publish a npm package to use in a frontend.
 
@@ -49,3 +49,7 @@ Heroku to deploy the server application to accessed at https://uuid-farm.herokua
 **React + Material UI**
 
 Front end built in [React](https://reactjs.org/docs/create-a-new-react-app.html) using [Material UI](https://material-ui.com/getting-started/installation/) styled components
+
+**OpenAPI Docs**
+
+API documentation generated from the openapi.yaml spec through [ReDoc](https://github.com/Redocly/redoc).
