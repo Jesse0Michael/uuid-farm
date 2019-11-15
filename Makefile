@@ -8,7 +8,7 @@ gen:
 	docker run -v ${PWD}:/uuid  openapitools/openapi-generator-cli generate -i /uuid/api/openapi.yaml -g typescript-node -o /uuid/client/ts/ --git-user-id jesse0michael --git-repo-id uuid-farm --additional-properties=npmName=@jesse0michael/uuid-farm,npmVersion=1.0.0
 
 gen-docs:
-	cd docs && redoc-cli bundle ../api/openapi.yaml --options.disableSearch --options.hideDownloadButton
+	redoc-cli bundle api/openapi.yaml -o docs/index.html --options.disableSearch --options.hideDownloadButton
 
 build:
 	go build -o bin/.
