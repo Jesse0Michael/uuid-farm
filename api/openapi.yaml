@@ -12,7 +12,7 @@ paths:
       description: Returns farm statistics.
       operationId: getFarm
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
@@ -24,7 +24,7 @@ paths:
       description: Returns all uuids.
       operationId: getUUIDs
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
@@ -43,7 +43,7 @@ paths:
       description: Adopt a previously surrendered, not yet adopted, uuid at random.
       operationId: adoptUUID
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
@@ -72,7 +72,7 @@ paths:
           type: string
         style: simple
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
@@ -100,7 +100,7 @@ paths:
           type: string
         style: simple
       responses:
-        201:
+        "201":
           content:
             application/json:
               schema:
@@ -133,7 +133,7 @@ paths:
               $ref: '#/components/schemas/uuid'
         description: uuid
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
