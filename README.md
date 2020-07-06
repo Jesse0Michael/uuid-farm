@@ -10,6 +10,15 @@ API Docs: https://jesse0michael.github.io/uuid-farm/index.html
 
 _<sup>This project is obviously satire. A joke idea that I spent way to much time on, but it was time spent learning new technologies that I wanted some experience in. Here's the areas of interest that this project touches, which were all free!</sup>_
 
+_<sup>**UPDATE**: deprecating the Heroku app since running this tool has no value. Below is a demo of what it used to look like when running.</sup>_
+
+## Demo
+
+![adopt example](assets/adopt.gif)
+
+![surrender example](assets/surrender.gif)
+
+
 ## Open API
 
 API defined using the [OPEN API Specification](https://github.com/OAI/OpenAPI-Specification) - [openapi.yaml](api/openapi.yaml)
