@@ -18,9 +18,10 @@ The browser presents a layered, illustrated farm. Sun, clouds, mountains, meadow
 foreground fence arrive in sequence. The fence remains an independent visual and landing
 surface. After an adoption, the reception desk displays a paper record with the returned
 UUID, name, version, intake/adoption dates, and any legacy tag, plus a copy button.
-Open “Their story so far” on the paper to see recorded arrivals and adoptions, most
-recent first, with earlier chapters available a page at a time. A resident who has
-been adopted can return through the same surrender form and find another home.
+“Their story so far” appears on the paper when earlier visits are recorded, beyond
+the current arrival and adoption shown above. Open it to see recorded arrivals and
+adoptions, most recent first, with earlier chapters available a page at a time. A
+resident who has been adopted can return through the same surrender form and find another home.
 Returning residents keep their name and intake note.
 Painted clouds drift slowly across the sky, wrapping offscreen; the wind chooses left or
 right on each page load.

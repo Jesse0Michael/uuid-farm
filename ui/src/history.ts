@@ -1,7 +1,7 @@
 import { getHistory } from "./api.ts";
 import "./history.css";
 
-/** History is loaded only when requested; changing residents cancels old reads. */
+/** Check for earlier visits after adoption; changing residents cancels old reads. */
 export function createHistory(details: HTMLDetailsElement) {
   const list = details.querySelector<HTMLOListElement>("ol")!;
   const status = details.querySelector<HTMLElement>("[role=status]")!;
@@ -15,7 +15,6 @@ export function createHistory(details: HTMLDetailsElement) {
   });
   let residentID = "";
   let cursor = "";
-  let loaded = false;
   let pending: AbortController | undefined;
   const seen = new Set<string>();
 
@@ -42,8 +41,9 @@ export function createHistory(details: HTMLDetailsElement) {
         item.append(label, date);
         list.append(item);
       }
-      loaded = true;
       const next = page.nextCursor ?? "";
+      // The current arrival and adoption already appear on the record above.
+      details.hidden = seen.size <= 2 && !next;
       more.hidden = !next || next === cursor;
       cursor = next;
       more.textContent = "Earlier chapters";
@@ -64,9 +64,6 @@ export function createHistory(details: HTMLDetailsElement) {
     }
   }
 
-  details.addEventListener("toggle", () => {
-    if (details.open && !loaded) void load();
-  });
   more.addEventListener("click", () => void load());
   window.addEventListener("pagehide", () => pending?.abort());
 
@@ -76,14 +73,15 @@ export function createHistory(details: HTMLDetailsElement) {
       pending = undefined;
       residentID = id;
       cursor = "";
-      loaded = false;
       seen.clear();
+      details.hidden = true;
       details.open = false;
       list.replaceChildren();
       list.removeAttribute("aria-busy");
       status.textContent = "";
       more.hidden = true;
       more.disabled = false;
+      if (residentID) void load();
     },
   };
 }

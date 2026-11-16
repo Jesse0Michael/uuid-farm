@@ -53,7 +53,10 @@ test("documentation loads on demand and browser navigation preserves reception",
   await page.goForward();
   await expect(page.locator("#docs-view")).toBeVisible();
   expect(referenceRequests).toBe(1);
-  expect(requests).toEqual([{ method: "POST", path: "/v1/uuids" }]);
+  expect(requests).toEqual([
+    { method: "POST", path: "/v1/uuids" },
+    { method: "GET", path: `/v1/uuids/${resident.id}/history` },
+  ]);
 });
 
 test("a direct documentation link renders the reference and supports its navigation", async ({ page }) => {

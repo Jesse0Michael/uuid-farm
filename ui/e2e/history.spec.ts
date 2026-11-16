@@ -25,7 +25,7 @@ async function mockReception(page: Page) {
   });
 }
 
-test("the adoption story loads on request and pages through earlier chapters on a narrow screen", async ({ page }) => {
+test("the adoption story checks for earlier visits after adoption and pages through them on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await mockReception(page);
   const requests: string[] = [];
@@ -38,10 +38,12 @@ test("the adoption story loads on request and pages through earlier chapters on 
     });
   });
   await page.goto("/");
+  expect(requests).toEqual([]);
   await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
   await expect(page.locator("#adoption-record")).toBeVisible();
-  expect(requests).toEqual([]);
   const story = page.locator("#resident-history");
+  await expect(story).toBeVisible();
+  expect(requests).toEqual([""]);
   await story.locator("summary").focus();
   await page.keyboard.press("Enter");
   await expect(story.locator("li")).toHaveCount(2);
@@ -55,6 +57,39 @@ test("the adoption story loads on request and pages through earlier chapters on 
   await story.locator("summary").click();
   expect(requests).toHaveLength(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+for (const count of [0, 1, 2]) {
+  test(`history stays hidden when only ${count} current-visit events are recorded`, async ({ page }) => {
+    await mockReception(page);
+    await page.route("**/v1/uuids/*/history*", (route) =>
+      route.fulfill({ json: { items: events.slice(0, count) } }),
+    );
+    await page.goto("/");
+    await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
+    const story = page.locator("#resident-history");
+    await expect(story.getByRole("status", { includeHidden: true })).toContainText(
+      count ? "Most recent first" : "No earlier chapters",
+    );
+    await expect(story).toBeHidden();
+    await expect(page.locator("#record-surrendered")).toContainText("2026");
+    await expect(page.locator("#record-adopted")).toContainText("2026");
+    await expect(page.locator("#adopted-id")).toHaveText(id);
+  });
+}
+
+test("an unavailable history stays hidden without losing a successful adoption", async ({ page }) => {
+  await mockReception(page);
+  await page.route("**/v1/uuids/*/history*", (route) =>
+    route.fulfill({ status: 503, body: "Unavailable" }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
+  const story = page.locator("#resident-history");
+  await expect(story.getByRole("status", { includeHidden: true })).toContainText("unavailable");
+  await expect(story).toBeHidden();
+  await expect(page.locator("#adopted-id")).toHaveText(id);
+  await expect(page.locator("#adopt-status")).toContainText("It’s official");
 });
 
 test("history can be retried without losing a successful adoption or earlier pages", async ({ page }) => {
@@ -90,25 +125,53 @@ test("a late history response cannot replace another resident's story", async ({
   });
   let release!: () => void;
   const hold = new Promise<void>((resolve) => { release = resolve; });
+  let finish!: () => void;
+  const finished = new Promise<void>((resolve) => { finish = resolve; });
   await page.route("**/v1/uuids/*/history*", async (route) => {
     if (route.request().url().includes(id)) {
       await hold;
-      return route.fulfill({ json: { items: events } }).catch(() => {});
+      await route.fulfill({ json: { items: events } }).catch(() => {});
+      finish();
+      return;
     }
     return route.fulfill({ json: { items: [events[0]] } });
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
   const story = page.locator("#resident-history");
-  await story.locator("summary").click();
-  await expect(story.getByRole("status")).toContainText("Opening");
+  await expect(story.getByRole("status", { includeHidden: true })).toContainText("Opening");
+  await expect(story).toBeHidden();
   await page.getByRole("button", { name: "Make room for another" }).click();
   await expect(page.locator("#adopted-id")).toHaveText(secondID);
   await expect(story).not.toHaveAttribute("open", "");
-  release();
-  await story.locator("summary").click();
   await expect(story.locator("li")).toHaveCount(1);
-  await expect(story.getByRole("status")).toContainText("Most recent first");
+  release();
+  await finished;
+  await expect(story.locator("li")).toHaveCount(1);
+  await expect(story).toBeHidden();
+});
+
+test("adopting a new resident hides the previous resident's expanded history", async ({ page }) => {
+  await mockReception(page);
+  let adoptions = 0;
+  await page.route("**/v1/uuids", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    adoptions++;
+    return route.fulfill({ json: { ...resident, id: adoptions === 1 ? id : secondID } });
+  });
+  await page.route("**/v1/uuids/*/history*", (route) =>
+    route.fulfill({ json: { items: route.request().url().includes(id) ? events : events.slice(0, 2) } }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
+  const story = page.locator("#resident-history");
+  await story.locator("summary").click();
+  await expect(story.locator("li")).toHaveCount(4);
+  await page.getByRole("button", { name: "Make room for another" }).click();
+  await expect(page.locator("#adopted-id")).toHaveText(secondID);
+  await expect(story.locator("li")).toHaveCount(2);
+  await expect(story).toBeHidden();
+  await expect(story).not.toHaveAttribute("open", "");
 });
 
 test("returning and readopting a resident updates its story and leaves decorative creatures alone", async ({ page }) => {
@@ -126,7 +189,10 @@ test("returning and readopting a resident updates its story and leaves decorativ
       expect(available).toBe(true);
       available = false;
       cycle++;
-      return route.fulfill({ json: resident });
+      return route.fulfill({ json: cycle === 1
+        ? { ...resident, surrenderDate: events[3].date, adoptionDate: events[2].date }
+        : resident,
+      });
     }
     if (request.method() === "POST" && path === `/v1/uuids/${id}`) {
       expect(available).toBe(false);
@@ -145,6 +211,8 @@ test("returning and readopting a resident updates its story and leaves decorativ
   const ids = await readIDs();
   await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
   await expect(page.locator("#adopted-id")).toHaveText(id);
+  await expect(page.locator("#resident-history li")).toHaveCount(2);
+  await expect(page.locator("#resident-history")).toBeHidden();
   await page.getByRole("button", { name: "Surrender", exact: true }).click();
   await page.getByLabel("UUID TO SURRENDER", { exact: true }).fill(id);
   await page.getByRole("button", { name: "Surrender a UUID", exact: true }).click();
