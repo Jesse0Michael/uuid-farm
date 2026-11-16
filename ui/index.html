@@ -64,6 +64,23 @@
       >
       <div class="header-right">
         <span class="open-sign"><i></i> The farm is open</span>
+        <button
+          id="music-toggle"
+          class="music-toggle"
+          type="button"
+          aria-label="Farm music"
+          aria-pressed="false"
+          title="Play Barnyard Groove"
+          data-playing="false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4Z" />
+            <path class="music-waves" d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />
+            <path class="music-off-mark" d="m16 9 6 6m0-6-6 6" />
+          </svg>
+          <span id="music-label">Music off</span>
+        </button>
+        <span id="music-status" class="music-status" role="status"></span>
       </div>
     </header>
 
@@ -175,6 +192,12 @@
                 <dd id="record-tag"></dd>
               </div>
             </dl>
+            <details id="resident-history" class="resident-history">
+              <summary>Their story so far</summary>
+              <ol aria-label="Arrivals and adoptions"></ol>
+              <p role="status" aria-live="polite"></p>
+              <button type="button" class="copy-button" hidden>Earlier chapters</button>
+            </details>
             <button id="copy-id" type="button" class="copy-button">
               Copy UUID <span aria-hidden="true">⧉</span>
             </button>
@@ -201,7 +224,7 @@
             <h2>There’s a place for them here.</h2>
             <p class="card-description">
               No longer needed doesn’t mean no longer loved.<br />We’ll take
-              good care of your UUID.
+              good care of your UUID. Returning residents are welcome, too.
             </p>
           </div>
           <form id="surrender-form">

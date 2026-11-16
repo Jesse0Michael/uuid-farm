@@ -25,6 +25,11 @@ func (s contractService) GetUUID(context.Context, string) (farm.Uuid, error) {
 func (s contractService) GetUUIDs(context.Context, int, string) (farm.Page, error) {
 	return farm.Page{Items: []farm.Uuid{specimen()}, NextCursor: testID}, s.err
 }
+func (s contractService) GetUUIDHistory(context.Context, string, int, string) (farm.HistoryPage, error) {
+	return farm.HistoryPage{Items: []farm.HistoryEvent{
+		{Id: "00000000000000000002", Type: "adopted", Date: "2026-11-15T12:00:00Z"},
+	}, NextCursor: "00000000000000000002"}, s.err
+}
 func (s contractService) SurrenderUUID(context.Context, string) (farm.Uuid, error) {
 	return specimen(), s.err
 }

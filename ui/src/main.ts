@@ -1,4 +1,5 @@
 import "./index.css";
+import { startFarmMusic } from "./music.ts";
 import {
   adopt,
   surrender,
@@ -7,6 +8,9 @@ import {
   type Resident,
 } from "./api.ts";
 import { createCreatures } from "./creatures.ts";
+import { createHistory } from "./history.ts";
+
+startFarmMusic();
 
 function element<T extends HTMLElement>(id: string): T {
   const value = document.getElementById(id);
@@ -61,6 +65,7 @@ window.addEventListener(
 );
 
 let latestResident: Resident | undefined;
+const history = createHistory(element<HTMLDetailsElement>("resident-history"));
 function dateLabel(value: string | undefined) {
   if (!value) return "Not recorded";
   const date = new Date(value);
@@ -73,6 +78,7 @@ function dateLabel(value: string | undefined) {
 }
 function showRecord(resident: Resident) {
   latestResident = resident;
+  history.setResident(resident.id);
   document.querySelector(".registrar")?.classList.add("has-record");
   element("adopt-intro").hidden = true;
   const record = element("adoption-record");
@@ -141,6 +147,7 @@ for (const action of ["adopt", "surrender"]) {
       if (action === "adopt") {
         const resident = await adopt();
         adoptedIDs.add(resident.id);
+        surrenderedIDs.delete(resident.id);
         creatures.removeResident(resident.id);
         showRecord(resident);
         status.textContent = "It’s official. They’re coming home with you.";
@@ -149,7 +156,17 @@ for (const action of ["adopt", "surrender"]) {
           element<HTMLInputElement>("surrender-id").value,
         );
         surrenderedIDs.add(resident.id);
+        adoptedIDs.delete(resident.id);
         creatures.addResident(resident.id);
+        if (latestResident?.id === resident.id) {
+          latestResident = undefined;
+          history.setResident("");
+          element("adoption-record").hidden = true;
+          element("adopt-intro").hidden = false;
+          element("adopt-button-label").textContent = "Adopt a UUID";
+          element("adopt-status").textContent = "";
+          document.querySelector(".registrar")?.classList.remove("has-record");
+        }
         status.textContent = "They’re in good hands. Welcome to the farm.";
         element<HTMLInputElement>("surrender-id").value = "";
       }
@@ -159,7 +176,7 @@ for (const action of ["adopt", "surrender"]) {
         error instanceof ApiError && error.status === 400
           ? "That doesn’t look like a UUID. Please check their identification."
           : error instanceof ApiError && error.status === 409
-            ? "This UUID already has a place in our records."
+            ? "This UUID is already in our care, waiting for a home."
             : error instanceof ApiError &&
                 error.status === 404 &&
                 action === "adopt"

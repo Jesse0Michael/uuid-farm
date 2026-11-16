@@ -52,8 +52,33 @@ export interface paths {
         get: operations["getUUID"];
         /** Set or clear a resident's name */
         put: operations["updateUUID"];
-        /** Surrender a UUID, normalized to its canonical spelling */
+        /**
+         * Surrender a UUID, normalized to its canonical spelling
+         * @description Admit a new UUID or welcome an adopted UUID back to the shelter. Each surrender and adoption is recorded in its history. A UUID already waiting at the shelter returns 409. Names and intake notes are retained.
+         */
         post: operations["surrenderUUID"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uuids/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a resident's surrender and adoption history
+         * @description Returns events newest first in lifecycle order. Existing residents include their known legacy intake and adoption dates; earlier unrecorded visits cannot be recovered. Reading history does not modify stored records.
+         */
+        get: operations["getUUIDHistory"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -69,10 +94,27 @@ export interface components {
             id: string;
             name?: string;
             readonly tag?: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Most recent arrival at the shelter.
+             */
             surrenderDate?: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Most recent adoption; absent while waiting at the shelter.
+             */
             adoptionDate?: string;
+        };
+        HistoryEvent: {
+            id: string;
+            /** @enum {string} */
+            type: "surrendered" | "adopted";
+            /** Format: date-time */
+            date: string;
+        };
+        HistoryPage: {
+            items: components["schemas"]["HistoryEvent"][];
+            nextCursor?: string;
         };
         Metadata: {
             name: string;
@@ -244,6 +286,35 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             409: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getUUIDHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Opaque nextCursor from the previous page for this resident. */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded page of lifecycle events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoryPage"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

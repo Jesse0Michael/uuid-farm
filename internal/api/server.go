@@ -23,6 +23,7 @@ type Service interface {
 	GetFarm(context.Context) (farm.Farm, error)
 	GetUUID(context.Context, string) (farm.Uuid, error)
 	GetUUIDs(context.Context, int, string) (farm.Page, error)
+	GetUUIDHistory(context.Context, string, int, string) (farm.HistoryPage, error)
 	SurrenderUUID(context.Context, string) (farm.Uuid, error)
 	UpdateUUID(context.Context, string, farm.Metadata) (farm.Uuid, error)
 }
@@ -33,17 +34,18 @@ func NewRouter(service Service) *http.ServeMux {
 	if err != nil {
 		panic(err)
 	} // Invalid embedded build input: caught by contract tests.
-	var constraints *openapi3.Schema
-	for _, parameter := range spec.Paths.Value("/uuids").Get.Parameters {
-		if parameter.Value.Name == "limit" && parameter.Value.In == "query" {
-			constraints = parameter.Value.Schema.Value
+	defaultLimit, minLimit, maxLimit := paginationBounds(spec.Paths.Value("/uuids").Get)
+	historyOperation := spec.Paths.Value("/uuids/{id}/history").Get
+	historyDefault, historyMin, historyMax := paginationBounds(historyOperation)
+	var historyCursor *openapi3.Schema
+	for _, parameter := range historyOperation.Parameters {
+		if parameter.Value.Name == "cursor" && parameter.Value.In == "query" {
+			historyCursor = parameter.Value.Schema.Value
 		}
 	}
-	if constraints == nil || constraints.Min == nil || constraints.Max == nil {
-		panic("OpenAPI limit parameter requires bounds")
+	if historyCursor == nil {
+		panic("OpenAPI history cursor requires a schema")
 	}
-	defaultLimit := int(constraints.Default.(float64))
-	minLimit, maxLimit := int(*constraints.Min), int(*constraints.Max)
 	maxName := int(*spec.Components.Schemas["Metadata"].Value.Properties["name"].Value.MaxLength)
 	operations := map[string]http.HandlerFunc{}
 	handle := func(id string, fn http.HandlerFunc) { operations[id] = fn }
@@ -74,6 +76,29 @@ func NewRouter(service Service) *http.ServeMux {
 	})
 	handle("adoptUUID", func(w http.ResponseWriter, r *http.Request) {
 		result, err := service.AdoptUUID(r.Context())
+		respond(w, result, err, 200)
+	})
+	handle("getUUIDHistory", func(w http.ResponseWriter, r *http.Request) {
+		id, err := farm.NormalizeID(r.PathValue("id"))
+		if err != nil {
+			EncodeErrorResponse(err, w)
+			return
+		}
+		limit := historyDefault
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			parsed, err := strconv.Atoi(raw)
+			if err != nil || parsed < historyMin || parsed > historyMax {
+				EncodeErrorResponse(farm.ErrInvalidInput, w)
+				return
+			}
+			limit = parsed
+		}
+		cursor := r.URL.Query().Get("cursor")
+		if cursor != "" && historyCursor.VisitJSON(cursor) != nil {
+			EncodeErrorResponse(farm.ErrInvalidInput, w)
+			return
+		}
+		result, err := service.GetUUIDHistory(r.Context(), id, limit, cursor)
 		respond(w, result, err, 200)
 	})
 	handle("getUUID", func(w http.ResponseWriter, r *http.Request) {
@@ -158,4 +183,18 @@ func respond(w http.ResponseWriter, result any, err error, code int) {
 		return
 	}
 	EncodeJSONResponse(result, code, w)
+}
+
+func paginationBounds(operation *openapi3.Operation) (defaultLimit, minLimit, maxLimit int) {
+	for _, parameter := range operation.Parameters {
+		if parameter.Value.Name != "limit" || parameter.Value.In != "query" {
+			continue
+		}
+		constraints := parameter.Value.Schema.Value
+		if constraints.Min == nil || constraints.Max == nil {
+			panic("OpenAPI limit parameter requires bounds")
+		}
+		return int(constraints.Default.(float64)), int(*constraints.Min), int(*constraints.Max)
+	}
+	panic("OpenAPI operation requires a limit parameter")
 }

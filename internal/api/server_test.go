@@ -18,6 +18,7 @@ type stubService struct {
 	surrender func(context.Context, string) (farm.Uuid, error)
 	update    func(context.Context, string, farm.Metadata) (farm.Uuid, error)
 	list      func(context.Context, int, string) (farm.Page, error)
+	history   func(context.Context, string, int, string) (farm.HistoryPage, error)
 }
 
 func (s stubService) SurrenderUUID(ctx context.Context, id string) (farm.Uuid, error) {
@@ -28,6 +29,48 @@ func (s stubService) UpdateUUID(ctx context.Context, id string, m farm.Metadata)
 }
 func (s stubService) GetUUIDs(ctx context.Context, limit int, cursor string) (farm.Page, error) {
 	return s.list(ctx, limit, cursor)
+}
+func (s stubService) GetUUIDHistory(ctx context.Context, id string, limit int, cursor string) (farm.HistoryPage, error) {
+	return s.history(ctx, id, limit, cursor)
+}
+
+func TestHistoryHTTP(t *testing.T) {
+	for _, tc := range []struct {
+		name, id, query string
+		limit           int
+		cursor          string
+		err             error
+		code            int
+	}{
+		{name: "defaults", id: strings.ToUpper(testID), limit: 25, code: 200},
+		{name: "page", id: testID, query: "?limit=1&cursor=00000000000000000002", limit: 1, cursor: "00000000000000000002", code: 200},
+		{name: "missing resident", id: testID, limit: 25, err: farm.ErrNotFound, code: 404},
+		{name: "invalid ID", id: "invalid", code: 400},
+		{name: "low limit", id: testID, query: "?limit=0", code: 400},
+		{name: "high limit", id: testID, query: "?limit=101", code: 400},
+		{name: "invalid limit", id: testID, query: "?limit=all", code: 400},
+		{name: "invalid cursor", id: testID, query: "?cursor=invalid", code: 400},
+		{name: "short cursor", id: testID, query: "?cursor=2", code: 400},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			called := false
+			service := stubService{history: func(ctx context.Context, id string, limit int, cursor string) (farm.HistoryPage, error) {
+				called = true
+				if id != testID || limit != tc.limit || cursor != tc.cursor {
+					t.Errorf("history parameters: %s %d %s", id, limit, cursor)
+				}
+				if _, ok := ctx.Deadline(); !ok {
+					t.Error("missing request deadline")
+				}
+				return farm.HistoryPage{Items: []farm.HistoryEvent{}}, tc.err
+			}}
+			response := httptest.NewRecorder()
+			NewRouter(service).ServeHTTP(response, httptest.NewRequestWithContext(t.Context(), "GET", "/v1/uuids/"+tc.id+"/history"+tc.query, nil))
+			if response.Code != tc.code || called != (tc.code != 400) {
+				t.Fatalf("code=%d called=%v body=%s", response.Code, called, response.Body)
+			}
+		})
+	}
 }
 
 func TestSurrenderHTTP(t *testing.T) {

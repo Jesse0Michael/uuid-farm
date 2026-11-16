@@ -1,0 +1,48 @@
+.music-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #71806b55;
+  border-radius: 24px;
+  background: #fbf8ed75;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+.music-toggle:hover {
+  background: #fbf8edc0;
+}
+.music-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.music-toggle[data-playing="true"] .music-off-mark,
+.music-toggle[data-playing="false"] .music-waves {
+  display: none;
+}
+.music-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .music-toggle {
+    padding: 10px;
+  }
+  #music-label {
+    display: none;
+  }
+}

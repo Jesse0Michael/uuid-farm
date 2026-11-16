@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jesse0michael/uuid-farm/internal/farm"
 
 	"cloud.google.com/go/firestore"
@@ -21,7 +22,7 @@ func TestFirestoreLifecycle(t *testing.T) {
 	if os.Getenv("FIRESTORE_EMULATOR_HOST") == "" {
 		t.Skip("set FIRESTORE_EMULATOR_HOST for isolated Firestore integration tests")
 	}
-	client, err := firestore.NewClient(t.Context(), "demo-uuid-farm-"+strings.ReplaceAll(testID, "-", ""))
+	client, err := firestore.NewClient(t.Context(), "demo-uuid-farm-"+uuid.NewString()[:8])
 	if err != nil {
 		t.Fatal(err)
 	}

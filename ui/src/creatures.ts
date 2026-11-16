@@ -685,16 +685,32 @@ export function createCreatures(): CreatureController {
         ...new Set(ids.filter((id) => UUID.test(id) && !dismissed.has(id))),
       ];
       if (!real.length) return;
+      const present = new Set(
+        creatures.flatMap((creature) => [creature.id, creature.pendingID]),
+      );
+      const waiting = real.filter((id) => !present.has(id));
       // Preserve positions and interactions while replacing fallback lettering.
-      creatures.forEach((creature, index) => {
-        if (!real[index]) return;
-        if (creature.mode === "held") creature.pendingID = real[index];
-        else assign(creature, real[index]);
-      });
+      // A surrender may already have placed a resident before this read finishes.
+      for (const creature of creatures) {
+        if (
+          real.includes(creature.id) ||
+          (creature.pendingID && real.includes(creature.pendingID))
+        )
+          continue;
+        const id = waiting.shift();
+        if (!id) break;
+        if (creature.mode === "held") creature.pendingID = id;
+        else assign(creature, id);
+      }
       schedule();
     },
     addResident(id) {
-      if (!UUID.test(id) || creatures.some((creature) => creature.id === id))
+      if (
+        !UUID.test(id) ||
+        creatures.some(
+          (creature) => creature.id === id || creature.pendingID === id,
+        )
+      )
         return;
       dismissed.delete(id);
       if (creatures.length < desiredCount()) create(id, creatures.length);

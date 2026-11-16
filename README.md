@@ -14,8 +14,18 @@ The browser presents a layered, illustrated farm. Sun, clouds, mountains, meadow
 foreground fence arrive in sequence. The fence remains an independent visual and landing
 surface. After an adoption, the reception desk displays a paper record with the returned
 UUID, name, version, intake/adoption dates, and any legacy tag, plus a copy button.
+Open “Their story so far” on the paper to see recorded arrivals and adoptions, most
+recent first, with earlier chapters available a page at a time. A resident who has
+been adopted can return through the same surrender form and find another home.
+Returning residents keep their name and intake note.
 Painted clouds drift slowly across the sky, wrapping offscreen; the wind chooses left or
 right on each page load.
+
+“Barnyard Groove” loops quietly on the page, with a music button beside the open sign.
+Browsers that block autoplay wait for an interaction; the button can also start the
+music. Turning it off is remembered on this browser. The original recording is kept
+in `assets/audio/barnyard-groove-source.m4a`; the browser AAC copy lives in
+`ui/public/audio/barnyard-groove.m4a`.
 
 UUID residents inch along the fence and the top of the reception card. Their four hyphens
 act as hinges between five rigid character groups: one end stays planted while the body
@@ -188,7 +198,7 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8787 go test -race ./...
 ```
 
 Without that variable, integration tests skip; HTTP and date compatibility tests still
-run. Tests exercise duplicate surrender, concurrent adoption, pagination, counters,
+run. Tests exercise repeat surrender/adoption, lifecycle history, duplicate surrender, concurrent adoption, pagination, counters,
 legacy timestamps, metadata validation, and canceled requests. They never intentionally
 connect to production Firestore.
 
@@ -199,22 +209,35 @@ regenerated artifacts. The Go handlers are hand-maintained. The former generated
 Node client and npm publishing pipeline have been retired.
 
 The API still lives at `/v1` to preserve existing action URLs. This is a breaking
-contract revision (spec version 2.0.0):
+contract revision (introduced in spec version 2.0.0; currently 2.1.0):
 
 - `GET /v1/uuids` now returns `{items, nextCursor?}`. Use `limit` (1–100, default 25)
   and the returned `cursor` to page in document ID order.
 - Adoption claims the first available document in document ID order atomically.
   It no longer promises random selection. Two adopters cannot claim the same resident.
-- Surrender normalizes UUIDs and returns 201 with a Location header.
+- Surrender normalizes UUIDs and returns 201 with a Location header, including when
+  an adopted UUID returns. Only a UUID already waiting at the shelter returns 409.
+- `GET /v1/uuids/{id}/history` returns `{items, nextCursor?}` with events shaped as
+  `{id, type, date}` (`type` is `surrendered` or `adopted`). Events appear newest first
+  in lifecycle order; use `limit` (1–100, default 25) and the opaque returned `cursor`.
 - `PUT /v1/uuids/{id}` accepts only `{name: string}` (up to 80 characters).
   An empty string clears the name. Dates and other lifecycle fields are server-managed.
   Names remain publicly editable, as in the original; there are no user accounts.
 - New dates use RFC3339. Historical Go time strings are normalized when read, without
   rewriting stored timestamps. Historical Firestore field names remain unchanged:
   `Id`, `Name`, `Tag`, `SurrenderDate`, `AdoptionDate`. Availability still means
-  `AdoptionDate == ""`.
+  `AdoptionDate == ""`. Surrender updates the current intake date and clears the
+  current adoption date; adoption sets the current adoption date.
+- Every new lifecycle transition appends an event under `uuids/{id}/history` in
+  the same transaction as the resident update. This additive history migration
+  preserves the root document format: on a legacy resident’s first transition,
+  the existing intake/adoption dates are copied to history before being replaced.
+  Until then, history reads show those known dates without writing anything.
+  Earlier visits that were never recorded cannot be reconstructed. History is
+  stored as separate documents so repeated visits do not grow the resident document.
 - Stats use index-backed aggregation counts in a read-only transaction instead of
   downloading every resident. Counts still consume quota as the collection grows.
+  They describe current residents and adoptions, rather than lifetime event totals.
 
 ### Before deploying over the original data
 
@@ -236,7 +259,9 @@ go run ./cmd/normalize-uuids -project YOUR_PROJECT -apply
 Each move atomically creates the canonical document and deletes its old spelling,
 keeping all fields. Updates since the audit are rejected. A partial run can be rerun.
 This migration is required before serving existing data under the normalized identity
-rules. No production migration is performed by CI or the application at startup.
+rules. Complete it before starting a server that records history: the legacy identity
+utility moves root documents, not history subcollections. No production migration
+is performed by CI or the application at startup.
 
 ## Deployment
 

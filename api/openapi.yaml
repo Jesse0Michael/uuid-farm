@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: UUID Farm
   description: A shelter for surrendered UUIDs.
-  version: 2.0.0
+  version: 2.1.0
   license:
     name: Unlicense
     url: https://unlicense.org/
@@ -85,6 +85,10 @@ paths:
     post:
       operationId: surrenderUUID
       summary: Surrender a UUID, normalized to its canonical spelling
+      description: >-
+        Admit a new UUID or welcome an adopted UUID back to the shelter. Each
+        surrender and adoption is recorded in its history. A UUID already
+        waiting at the shelter returns 409. Names and intake notes are retained.
       responses:
         '201':
           description: Resident admitted
@@ -118,6 +122,48 @@ paths:
           $ref: '#/components/responses/Error'
         default:
           $ref: '#/components/responses/Error'
+  /uuids/{id}/history:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getUUIDHistory
+      summary: Read a resident's surrender and adoption history
+      description: >-
+        Returns events newest first in lifecycle order. Existing residents include
+        their known legacy intake and adoption dates; earlier unrecorded visits
+        cannot be recovered. Reading history does not modify stored records.
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - in: query
+          name: cursor
+          description: Opaque nextCursor from the previous page for this resident.
+          schema:
+            type: string
+            pattern: '^[0-9]{20}$'
+      responses:
+        '200':
+          description: A bounded page of lifecycle events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryPage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
 components:
   responses:
     Resident:
@@ -148,9 +194,35 @@ components:
         surrenderDate:
           type: string
           format: date-time
+          description: Most recent arrival at the shelter.
         adoptionDate:
           type: string
           format: date-time
+          description: Most recent adoption; absent while waiting at the shelter.
+    HistoryEvent:
+      type: object
+      required: [id, type, date]
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9]{20}$'
+        type:
+          type: string
+          enum: [surrendered, adopted]
+        date:
+          type: string
+          format: date-time
+    HistoryPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEvent'
+        nextCursor:
+          type: string
+          pattern: '^[0-9]{20}$'
     Metadata:
       type: object
       additionalProperties: false

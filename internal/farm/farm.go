@@ -9,7 +9,7 @@ import (
 var (
 	ErrNotFound     = errors.New("no UUIDs available")
 	ErrInvalidUUID  = errors.New("invalid UUID")
-	ErrConflict     = errors.New("UUID already exists")
+	ErrConflict     = errors.New("UUID is already waiting at the shelter")
 	ErrInvalidInput = errors.New("invalid request")
 )
 
@@ -42,4 +42,17 @@ type Page struct {
 
 type Metadata struct {
 	Name string `json:"name"`
+}
+
+// HistoryEvent is a server-controlled lifecycle entry. Ordered IDs are scoped to
+// one resident; the original resident document's Firestore fields stay unchanged.
+type HistoryEvent struct {
+	Id   string `json:"id"`
+	Type string `json:"type"`
+	Date string `json:"date"`
+}
+
+type HistoryPage struct {
+	Items      []HistoryEvent `json:"items"`
+	NextCursor string         `json:"nextCursor,omitempty"`
 }

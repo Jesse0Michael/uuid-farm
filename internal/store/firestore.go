@@ -38,7 +38,14 @@ func (s *Firestore) AdoptUUID(ctx context.Context) (farm.Uuid, error) {
 		if err := docs[0].DataTo(&resident); err != nil {
 			return err
 		}
+		previous, legacy, err := prepareHistory(tx, docs[0].Ref, resident)
+		if err != nil {
+			return err
+		}
 		resident.AdoptionDate = time.Now().UTC().Format(time.RFC3339Nano)
+		if err := appendHistory(tx, docs[0].Ref, previous, legacy, "adopted", resident.AdoptionDate); err != nil {
+			return err
+		}
 		if err := tx.Update(docs[0].Ref, []firestore.Update{{Path: "AdoptionDate", Value: resident.AdoptionDate}}); err != nil {
 			return err
 		}
@@ -127,15 +134,44 @@ func (s *Firestore) SurrenderUUID(ctx context.Context, id string) (farm.Uuid, er
 	if err != nil {
 		return farm.Uuid{}, err
 	}
-	resident := farm.Uuid{Id: id, SurrenderDate: time.Now().UTC().Format(time.RFC3339Nano)}
-	_, err = s.client.Collection(collection).Doc(id).Create(ctx, resident)
-	if status.Code(err) == codes.AlreadyExists {
-		return farm.Uuid{}, farm.ErrConflict
-	}
+	var resident farm.Uuid
+	err = s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		ref := s.client.Collection(collection).Doc(id)
+		doc, err := tx.Get(ref)
+		if status.Code(err) == codes.NotFound {
+			resident = farm.Uuid{Id: id, SurrenderDate: time.Now().UTC().Format(time.RFC3339Nano)}
+			if err := tx.Create(ref, resident); err != nil {
+				return err
+			}
+			return appendHistory(tx, ref, 0, nil, "surrendered", resident.SurrenderDate)
+		}
+		if err != nil {
+			return err
+		}
+		if err := doc.DataTo(&resident); err != nil {
+			return err
+		}
+		if resident.AdoptionDate == "" {
+			return farm.ErrConflict
+		}
+		previous, legacy, err := prepareHistory(tx, ref, resident)
+		if err != nil {
+			return err
+		}
+		resident.SurrenderDate = time.Now().UTC().Format(time.RFC3339Nano)
+		resident.AdoptionDate = ""
+		if err := appendHistory(tx, ref, previous, legacy, "surrendered", resident.SurrenderDate); err != nil {
+			return err
+		}
+		return tx.Update(ref, []firestore.Update{
+			{Path: "SurrenderDate", Value: resident.SurrenderDate},
+			{Path: "AdoptionDate", Value: ""},
+		})
+	})
 	if err != nil {
 		return farm.Uuid{}, fmt.Errorf("surrender UUID: %w", err)
 	}
-	return resident, nil
+	return normalizeDates(resident), nil
 }
 
 func (s *Firestore) UpdateUUID(ctx context.Context, id string, metadata farm.Metadata) (farm.Uuid, error) {

@@ -23,6 +23,8 @@ when a creature is picked up or falls offscreen. Accounts and galleries remain o
 - `api/openapi.yaml`: source of truth for the HTTP contract.
 - `ui/public/art/`: generated transparent farm layers; prompts in `assets/art-direction.md`.
 - `ui/src/creatures.ts`: browser-only inchworm animation and drag/drop physics.
+- `ui/src/history.ts`: paginated arrival/adoption history on the adoption paper.
+- `ui/src/music.ts`: browser-only looping farm music and a remembered sound preference.
 - `ui/`: Vite + TypeScript; native HTML forms and same-origin fetch. No React or published
   npm client. `ui/src/api-types.ts` is generated; do not hand-edit.
 - `docs/index.html`: generated standalone ReDoc docs.
@@ -94,6 +96,13 @@ without mutating stored data. Do not change fields or storage formats without a 
 Adoption is atomic, selecting the first available document in ID order. Keep lifecycle
 changes server-controlled. Public metadata updates only change the name; names remain
 publicly editable. Listing is paginated and statistics use aggregation queries.
+
+Adopted residents can be surrendered again; residents already available still conflict.
+Each transition appends an event to `uuids/{id}/history` atomically with the current
+resident state. Preserve name/tag across visits. History uses increasing, fixed-width
+event IDs and paginates newest first. Legacy dates are shown without read-time writes
+and copied to history before the first transition replaces them; never invent prior
+visits. Statistics count current state, not lifetime events.
 
 The service uses standard Google Application Default Credentials. Configuration:
 `GOOGLE_CLOUD_PROJECT`, `PORT`, `UI_DIR`, and optional `FIRESTORE_EMULATOR_HOST`.
