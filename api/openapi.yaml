@@ -1,202 +1,194 @@
-openapi: 3.0.2
+openapi: 3.0.3
 info:
-  description: A farm for abandoned UUIDs
-  title: uuid farm
-  version: v1
+  title: UUID Farm
+  description: A shelter for surrendered UUIDs.
+  version: 2.0.0
+  license:
+    name: Unlicense
+    url: https://unlicense.org/
 servers:
-- description: uuid farm
-  url: https://uuid-farm.herokuapp.com/v1
+  - url: /v1
+security: []
 paths:
   /:
     get:
-      description: Returns farm statistics.
       operationId: getFarm
+      summary: Get shelter statistics
       responses:
-        "200":
+        '200':
+          description: Shelter statistics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/farm'
-          description: Success response
-      summary: Get Farm Stats
+                $ref: '#/components/schemas/Farm'
+        default:
+          $ref: '#/components/responses/Error'
   /uuids:
     get:
-      description: Returns all uuids.
       operationId: getUUIDs
+      summary: List residents in document ID order
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - in: query
+          name: cursor
+          description: nextCursor from the previous page; canonical UUID document ID.
+          schema:
+            type: string
+            format: uuid
       responses:
-        "200":
+        '200':
+          description: A bounded page of residents
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/uuid'
-                type: array
-          description: uuid array response
+                $ref: '#/components/schemas/Page'
+        '400':
+          $ref: '#/components/responses/Error'
         default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/apiError'
-          description: unexpected error
-      summary: Get UUIDs
+          $ref: '#/components/responses/Error'
     post:
-      description: Adopt a previously surrendered, not yet adopted, uuid at random.
       operationId: adoptUUID
+      summary: Adopt the first available resident in document ID order
       responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/uuid'
-          description: uuid response
+        '200':
+          $ref: '#/components/responses/Resident'
+        '404':
+          $ref: '#/components/responses/Error'
+        '400':
+          $ref: '#/components/responses/Error'
         default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/apiError'
-          description: unexpected error
-      summary: Adopt UUID
+          $ref: '#/components/responses/Error'
   /uuids/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
     get:
-      description: Returns information on a uuid by its id. Rejects invalid and not
-        found uuids.
       operationId: getUUID
-      parameters:
-      - description: uuid
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
+      summary: Find a resident
       responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/uuid'
-          description: uuid response
+        '200':
+          $ref: '#/components/responses/Resident'
+        '400':
+          $ref: '#/components/responses/Error'
         default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/apiError'
-          description: unexpected error
-      summary: Get UUID
+          $ref: '#/components/responses/Error'
     post:
-      description: Adds a new uuid to the farm to become available for adoption. Rejects
-        invalid or duplicate uuids.
       operationId: surrenderUUID
-      parameters:
-      - description: uuid
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
+      summary: Surrender a UUID, normalized to its canonical spelling
       responses:
-        "201":
+        '201':
+          description: Resident admitted
+          headers:
+            Location:
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/uuid'
-          description: uuid response
+                $ref: '#/components/schemas/Uuid'
+        '409':
+          $ref: '#/components/responses/Error'
+        '400':
+          $ref: '#/components/responses/Error'
         default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/apiError'
-          description: unexpected error
-      summary: Surrender UUID
+          $ref: '#/components/responses/Error'
     put:
-      description: Update uuid metadata. Rejects invalid or not found uuids.
       operationId: updateUUID
-      parameters:
-      - description: uuid
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
+      summary: Set or clear a resident's name
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/uuid'
-        description: uuid
+              $ref: '#/components/schemas/Metadata'
       responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/uuid'
-          description: uuid response
+        '200':
+          $ref: '#/components/responses/Resident'
+        '400':
+          $ref: '#/components/responses/Error'
         default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/apiError'
-          description: unexpected error
-      summary: Update UUID
+          $ref: '#/components/responses/Error'
 components:
+  responses:
+    Resident:
+      description: Resident record
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Uuid'
+    Error:
+      description: Invalid request, missing resident, conflict, or service failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
   schemas:
-    uuid:
-      example:
-        name: name
-        tag: tag
-        adoptionDate: 2000-01-23
-        surrenderDate: 2000-01-23
+    Uuid:
+      type: object
+      required: [id]
       properties:
         id:
           type: string
+          format: uuid
         name:
           type: string
         tag:
           type: string
+          readOnly: true
         surrenderDate:
-          format: date
           type: string
+          format: date-time
         adoptionDate:
-          format: date
           type: string
-      required:
-      - id
+          format: date-time
+    Metadata:
       type: object
-    apiError:
+      additionalProperties: false
+      required: [name]
       properties:
-        code:
-          example: 400
-          format: int32
-          type: integer
-        message:
-          example: Bad request.
+        name:
           type: string
-      required:
-      - code
-      - message
+          maxLength: 80
+    Page:
       type: object
-    farm:
-      example:
-        uuids: 10
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+        nextCursor:
+          type: string
+          format: uuid
+    Farm:
+      type: object
+      required: [uuids, adopted, surrendered]
       properties:
         uuids:
-          example: 10
           type: integer
+          format: int64
         adopted:
-          example: 2
           type: integer
+          format: int64
         surrendered:
-          example: 8
           type: integer
-      required:
-      - adopted
-      - surrendered
-      - uuids
+          format: int64
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string

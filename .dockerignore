@@ -1,0 +1,9 @@
+.git
+**/node_modules
+ui/dist
+bin
+secrets
+**/.env*
+**/*credentials*.json
+gha-creds-*.json
+deploy/

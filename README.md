@@ -1,66 +1,276 @@
-# UUID FARM - [FARM](https://uuid-farm.firebaseapp.com/) - [API DOCS](https://jesse0michael.github.io/uuid-farm/index.html)
+# UUID Farm
 
-A place for UUIDs to get a second chance at life. Abandon your no longer needed UUIDs to to farm where they will be cared for, or adopt a UUID that has left at the farm.
+A place for UUIDs to get a second chance at life. Surrender identifiers you no longer
+need, or adopt one that is waiting for a home. The UUIDs really are stored in Firestore.
 
-Frontend: https://uuid-farm.firebaseapp.com/
+The original 2019 version used React, a published Node client, Firebase Hosting, and
+Heroku. The Heroku backend was retired. This revision keeps Adopt/Surrender and Firestore, with an illustrated interactive
+farm, one Go server, and a small TypeScript frontend.
+It has not yet been deployed.
 
-API Docs: https://jesse0michael.github.io/uuid-farm/index.html
+## Life on the farm
 
----
+The browser presents a layered, illustrated farm. Sun, clouds, mountains, meadow, barn, oak, and
+foreground fence arrive in sequence. The fence remains an independent visual and landing
+surface. After an adoption, the reception desk displays a paper record with the returned
+UUID, name, version, intake/adoption dates, and any legacy tag, plus a copy button.
+Painted clouds drift slowly across the sky, wrapping offscreen; the wind chooses left or
+right on each page load.
 
-_<sup>This project is obviously satire. A joke idea that I spent way to much time on, but it was time spent learning new technologies that I wanted some experience in. Here's the areas of interest that this project touches, which were all free!</sup>_
+UUID residents inch along the fence and the top of the reception card. Their four hyphens
+act as hinges between five rigid character groups: one end stays planted while the body
+arches, then the other end anchors as it stretches forward. Each resident has its own
+pace and randomly timed bouts of inching, looking around, sniffing, stretching, and resting,
+with independent blinks. Pick one up to
+let it dangle, then release above the card or fence to let it settle. Dropping below the
+fence lets it fall out of view. These interactions never change Firestore records.
+Keyboard users can focus a creature, press Enter/Space to pick it up, move with arrow
+keys (Shift for larger steps), press Enter/Space to drop, or Escape to return it.
 
-_<sup>**UPDATE**: deprecating the Heroku app since running this tool has no value. Below is a demo of what it used to look like when running.</sup>_
+The scene uses up to six available UUIDs from at most three API pages. If the service is
+unavailable or none are found in those pages, decorative UUIDs keep the farm company.
+Actual adoption and surrender always require a successful API response. Animation pauses
+when the tab is hidden, and OS reduced-motion preferences keep the scene still.
 
-## Demo
+Artwork lives in `ui/public/art/`; generation prompts and provenance are in
+[assets/art-direction.md](assets/art-direction.md). Browser tests mock the API so they can
+exercise adoption, surrender, fallback, accessibility, and dragging without changing data:
 
-![adopt example](assets/adopt.gif)
+```sh
+cd ui
+npx playwright install chromium
+npm run test:e2e
+# Or use an existing Chrome installation:
+PLAYWRIGHT_CHROME=1 npm run test:e2e
+```
 
-![surrender example](assets/surrender.gif)
+## Architecture and API workflow
 
+The server separates application setup, HTTP adapters, domain models, and storage:
 
-## Open API
+- `cmd/server`: executable entrypoint.
+- `internal/app`: configuration, dependency wiring, HTTP lifecycle, static hosting.
+- `internal/api`: hand-written HTTP adapters and contract tests.
+- `internal/farm`: shared resident models, identity normalization, domain errors.
+- `internal/store`: Firestore transactions and queries; no HTTP dependencies.
+- `api`: embedded OpenAPI document and its loader.
 
-API defined using the [OPEN API Specification](https://github.com/OAI/OpenAPI-Specification) - [openapi.yaml](api/openapi.yaml)
+Published modules from [pkg](https://github.com/Jesse0Michael/pkg) provide configuration
+(`config.New`), structured logging (`logger.NewLogger`), HTTP server construction
+(`http/server.New`), and JSON encoding (`http/server.Encode`). Versions are pinned in
+`go.mod`; sibling checkouts and local replace directives are not required.
 
-_<sup>After building APIs without documentation and APIs with generated documentation, APIs documentation first feels like the best option to me (Especially when paired with code generation). Openapi is an effective way to keep the API and clients in sync and plan for the routes you'll need before you jump into development.</sup>_
+OpenAPI is authoritative: edit `api/openapi.yaml` first. The server registers handlers
+by the spec's operation IDs and reads pagination bounds/defaults and name length from
+its schemas. Startup rejects missing or extra operation implementations. Contract tests
+exercise every declared operation and validate success/error responses against the spec.
+`make gen` produces browser types and docs; it does not generate Go application code.
+Firestore models stay separate so API edits cannot silently change persisted field names.
 
-## Code Generation
+Technology decisions:
 
-Go server generated using [Open API generator](https://github.com/OpenAPITools/openapi-generator) with changes made by me [#4038](https://github.com/OpenAPITools/openapi-generator/pull/4038) [#4196](https://github.com/OpenAPITools/openapi-generator/pull/4196) [#4400](https://github.com/OpenAPITools/openapi-generator/pull/4400). The Open API generator builds a convenient API skeleton separates the API routing and service logic into their own interfaces.
+- **Keep the web frontend.** [Wails](https://wails.io/) is useful for native applications
+  with Go bindings, windows, menus, and desktop integration. UUID Farm only needs a hosted
+  browser UI. Adding that runtime would not improve the existing workflow.
+- **Keep native Firestore queries.** [Ent's supported dialects](https://entgo.io/docs/dialects/)
+  do not include Firestore. Adopting Ent would require replacing the database or maintaining
+  a custom storage driver, with no benefit for the current entity model.
+- **Use helpers selectively.** `pkg/config`'s Firestore constructor creates a low-level
+  API-key client; this service needs the high-level transactional client with ADC/emulator
+  support. `boot.App` adds its own metrics listener and lifecycle semantics, so shutdown
+  remains explicit. `pkg/http/errors` has a different public JSON envelope; existing
+  `{code, message}` responses are preserved. Strict metadata decoding also remains local.
+- **Dependency tradeoff.** `pkg/config` includes SQL, Redis, and telemetry helpers in one
+  Go package. Its transitive dependency footprint is larger than a standalone env parser.
+  We accept that cost for consistency with the shared toolbox, without enabling those
+  services. OpenTelemetry adapters are aligned with Firestore's selected logging API.
 
-_<sup>When trying to use the go-server generated code I found it lacking from what I would normally build in a Golang API server. I saw the opportunity to actually contribute to a real open source repo and shed my imposter syndrome skin to improve the repo for #hacktoberfest2019. Adding and modifying the [mustache templates](https://mustache.github.io/mustache.5.html) that were used into something that I'm very pleased with.</sup>_
+## Run everything with Docker Compose
 
-Node Client generation the [typescript-node](https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/typescript-node.md) Openapi generator to publish a npm package to use in a frontend.
+Only Docker with Compose v2 is needed; Go, Node, Java, and Google credentials are not
+needed on your host.
 
-_<sup>Generating the typescript client through the openapi tools went exactly how openapi code generation should be, requiring nothing more than one command with the appropriate configuration.</sup>_
+```sh
+make up                 # build and start the app and Firestore; wait for health checks
+make seed COUNT=100     # surrender 100 new UUIDv4 residents through the local API
+make logs               # follow app and emulator logs
+make down               # stop and remove the local stack
+```
 
-## Firestore Database
+Open http://localhost:8080. Compose uses Google's Cloud CLI `emulators` image and the
+`demo-uuid-farm` project. The app is explicitly connected to `firestore:8787` and does not
+use production credentials. Host access to both services is bound to loopback.
+The emulator is in-memory: stopping/restarting it clears local residents. `make up` never
+seeds automatically; repeat `make seed` when you want more residents (default count: 25).
 
-The document database provided through Google's Firebase called [Firestore](https://firebase.google.com/docs/firestore) for storing documents.
+To avoid port conflicts, use `APP_PORT=8088 FIRESTORE_PORT=8788 make up`.
+These change host ports only; Compose seeding continues to use the internal app address.
+The equivalent seed command is `docker compose run --build --rm seed 100`.
 
-_<sup>In addition to Firebase's Hosting; this project uses Firebase's Firestore, A NoSQL database that I was excited to get some real experience using. The Firestore client was confusing to use in my [API Service](pkg/uuids/api_default_service.go) but, after following the documentation, worked perfectly.</sup>_
+### Seed any running server
 
-## Github Actions
+`cmd/seed` uses `google/uuid.NewRandom` (cryptographically random UUIDv4) and the existing
+surrender endpoint. It does not write directly to Firestore. Build it independently:
 
-[Github Actions](https://help.github.com/en/actions/automating-your-workflow-with-github-actions) - CI built right into github using [workflows](.github/workflows/release.yml) defined in the repo.
+```sh
+make build-seed
+./bin/seed 100
+./bin/seed -url https://your-deployed-server.example 100
+```
 
-_<sup>Like every new CI I've tried there is a lot of trial and error at first. I don't find that annoying, that's just part of the task. Github actions workflows are easy to build and work just like you would expect (for the most part). Running build steps in containers is the way to go but the star of this CI is pre-built, reusable, public actions. Putting the logic that you would normally copy and paste in every repo into a developed and configurable action that can run without having to manage dependencies is a beautiful thing.</sup>_
+The URL is the server base URL **without `/v1`**. Flags go before the integer count.
+The default target is `http://localhost:8080`. The command waits up to 30 seconds for
+`/healthz`; change that with `-wait 60s`. A count of zero checks readiness without writing
+(and is also used by Compose's app health check). Negative counts are rejected.
 
-## Github Packages
+To run the standalone seed container against a deployed server:
 
-A public package repository to store and manage the [Go server docker image](https://github.com/Jesse0Michael/uuid-farm/packages/43229) and [Node client npm package](https://github.com/Jesse0Michael/uuid-farm/packages/48889) living right alongside the repository through [Github Packages](https://help.github.com/en/github/managing-packages-with-github-package-registry/about-github-package-registry).
+```sh
+docker build --target seed -t uuid-farm-seed .
+docker run --rm uuid-farm-seed -url https://your-deployed-server.example 100
+```
 
-## Heroku
+Requests are sequential and have a 10-second timeout. The command stops on the first
+failure and reports the confirmed count. It does not retry failed writes or follow
+redirects; a lost response can mean the last UUID was accepted despite a reported error.
+A later run creates fresh UUIDs. No production seeding runs during builds, tests, or startup.
 
-Heroku to deploy the server application to accessed at https://uuid-farm.herokuapp.com/v1 through the docker image.
+## Development with host tools
 
-_<sup>I've been wanting an excuse to use Heroku. Setting up the application was easy and the cold start delay is not a problem at all (for a project that is a joke and will have zero usage).</sup>_
+Requires Go 1.27+, Node 24+, and npm. No npm registry token is needed.
 
-## React + Material UI
+```sh
+cd ui
+npm ci
+npm start
+```
 
-Front end built in [React](https://reactjs.org/docs/create-a-new-react-app.html) using [Material UI](https://material-ui.com/getting-started/installation/) styled components
+In another terminal, start the API using a **local Firestore emulator**:
 
-## OpenAPI Docs
+```sh
+gcloud emulators firestore start --host-port=127.0.0.1:8787
+# In a separate terminal:
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8787
+export GOOGLE_CLOUD_PROJECT=demo-uuid-farm
+make run
+```
 
-API documentation generated from the openapi.yaml spec through [ReDoc](https://github.com/Redocly/redoc).
+Open the Vite URL (normally http://localhost:5173). It proxies `/v1` to the Go server
+on port 8080. Emulator data is disposable. Tests use a separate demo project.
+
+For a real Firestore project, unset `FIRESTORE_EMULATOR_HOST`, set
+`GOOGLE_CLOUD_PROJECT`, and use Application Default Credentials, for example
+`gcloud auth application-default login`. A mounted service-account file through
+`GOOGLE_APPLICATION_CREDENTIALS` also works. The old `GOOGLE_CREDENTIALS` mechanism
+that wrote secrets to disk has been removed.
+
+## Build and checks
+
+```sh
+make ui             # install UI dependencies and build ui/dist
+make build          # build bin/uuid-server
+./bin/uuid-server   # serve API and ui/dist together on port 8080
+make test           # Go race tests, frontend tests/build, API lint
+make gen            # regenerate local TS API types and standalone ReDoc docs
+make build-docker   # build the combined application image
+```
+
+`PORT`, `UI_DIR` (default `ui/dist`), and `GOOGLE_CLOUD_PROJECT` (default `uuid-farm`)
+configure the server. Logging uses `LOG_LEVEL`, `LOG_FORMAT`, `LOG_OUTPUT`, and
+`LOG_SOURCE` from `pkg/logger`. `/healthz` is a process health check, not a Firestore readiness
+probe. For production, prefer an explicitly configured project and platform-provided
+Google credentials. The container runs as a non-root user.
+
+Run database tests against the emulator:
+
+```sh
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8787 go test -race ./...
+```
+
+Without that variable, integration tests skip; HTTP and date compatibility tests still
+run. Tests exercise duplicate surrender, concurrent adoption, pagination, counters,
+legacy timestamps, metadata validation, and canceled requests. They never intentionally
+connect to production Firestore.
+
+## API and compatibility
+
+`api/openapi.yaml` is the contract. `ui/src/api-types.ts` and `docs/index.html` are
+regenerated artifacts. The Go handlers are hand-maintained. The former generated
+Node client and npm publishing pipeline have been retired.
+
+The API still lives at `/v1` to preserve existing action URLs. This is a breaking
+contract revision (spec version 2.0.0):
+
+- `GET /v1/uuids` now returns `{items, nextCursor?}`. Use `limit` (1–100, default 25)
+  and the returned `cursor` to page in document ID order.
+- Adoption claims the first available document in document ID order atomically.
+  It no longer promises random selection. Two adopters cannot claim the same resident.
+- Surrender normalizes UUIDs and returns 201 with a Location header.
+- `PUT /v1/uuids/{id}` accepts only `{name: string}` (up to 80 characters).
+  An empty string clears the name. Dates and other lifecycle fields are server-managed.
+  Names remain publicly editable, as in the original; there are no user accounts.
+- New dates use RFC3339. Historical Go time strings are normalized when read, without
+  rewriting stored timestamps. Historical Firestore field names remain unchanged:
+  `Id`, `Name`, `Tag`, `SurrenderDate`, `AdoptionDate`. Availability still means
+  `AdoptionDate == ""`.
+- Stats use index-backed aggregation counts in a read-only transaction instead of
+  downloading every resident. Counts still consume quota as the collection grows.
+
+### Before deploying over the original data
+
+Stop the old service and any other writers, take a backup, then audit document IDs:
+
+```sh
+go run ./cmd/normalize-uuids -project YOUR_PROJECT
+```
+
+This command reads all residents and defaults to **no writes**. It reports noncanonical
+IDs and refuses collisions, invalid IDs, and mismatched identities before writing anything.
+Resolve collisions manually; the tool does not guess which resident history to keep.
+After reviewing the audit and with writers still stopped:
+
+```sh
+go run ./cmd/normalize-uuids -project YOUR_PROJECT -apply
+```
+
+Each move atomically creates the canonical document and deletes its old spelling,
+keeping all fields. Updates since the audit are rejected. A partial run can be rerun.
+This migration is required before serving existing data under the normalized identity
+rules. No production migration is performed by CI or the application at startup.
+
+## Deployment
+
+The Docker image serves both the UI and API at one origin, so CORS and separately
+published clients are unnecessary. Terraform and GitHub Actions can deploy it to Cloud Run
+using the existing Firebase Firestore database. One combined UI/API service and one serialized
+deployment workflow use keyless GitHub authentication. Set `GCP_PROJECT_ID` to the project ID
+shown in Firebase Console → Project settings → General; Firebase and Google Cloud share that
+project ID, so the database stays in place.
+
+See **[Cloud Run setup and GitHub variables](docs/deploy.md)** for the one-time bootstrap,
+database preparation, and deployment. Once configured, successful checks for a
+push to `master` build an Artifact Registry image and apply the Cloud Run configuration.
+Deployment uses the tested commit and immutable image digest. Pull-request checks have no
+cloud credentials. Infrastructure has not been applied or deployed by adding these files.
+
+The old Heroku and Firebase Hosting deployments remain retired. A `v*` tag still publishes an
+optional image to GitHub Container Registry; that publishing workflow does not deploy.
+Cloud Run deployments use Google Artifact Registry. Hosting can have its own costs.
+
+`ui/firebase.json` can still publish static assets, but Firebase Hosting alone does not
+run the Go backend. If using it, configure a `/v1/**` rewrite to your backend before
+publishing; the frontend intentionally uses same-origin API URLs.
+
+Firestore has a free quota, not unlimited free usage:
+[quota documentation](https://firebase.google.com/docs/firestore/quotas).
+
+## Original demo
+
+![Adopt example](assets/adopt.gif)
+![Surrender example](assets/surrender.gif)
+
+The original implementation was also an excuse to learn OpenAPI, Go, Firestore,
+React, and GitHub Actions, and contribute to OpenAPI Generator:
+[#4038](https://github.com/OpenAPITools/openapi-generator/pull/4038),
+[#4196](https://github.com/OpenAPITools/openapi-generator/pull/4196), and
+[#4400](https://github.com/OpenAPITools/openapi-generator/pull/4400).

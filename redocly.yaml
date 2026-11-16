@@ -1,0 +1,5 @@
+extends:
+  - recommended
+rules:
+  # Statistics take no user input and legitimately have no 4xx response.
+  operation-4xx-response: off

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#c5dedc" />
+    <meta
+      name="description"
+      content="A quiet place for UUIDs to find a second home. Surrender an identifier or adopt one from the farm."
+    />
+    <meta name="application-name" content="UUID Farm" />
+    <meta name="apple-mobile-web-app-title" content="UUID Farm" />
+    <link
+      rel="icon"
+      href="/favicon.ico"
+      type="image/x-icon"
+      sizes="16x16 32x32 48x48"
+    />
+    <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>UUID Farm — A second chance at belonging</title>
+  </head>
+  <body>
+    <div class="farm-scene" aria-hidden="true">
+      <div class="sun-arrival">
+        <img class="sun" src="/art/sun.png" alt="" />
+      </div>
+      <div class="cloud-layer">
+        <div class="cloud cloud-one">
+          <img src="/art/cloud.png" alt="" />
+        </div>
+        <div class="cloud cloud-two">
+          <img src="/art/cloud.png" alt="" />
+        </div>
+        <div class="cloud cloud-three">
+          <img src="/art/cloud.png" alt="" />
+        </div>
+      </div>
+      <div class="scenery mountains"><img src="/art/meadow.png" alt="" /></div>
+      <div class="scenery meadow"><img src="/art/meadow.png" alt="" /></div>
+      <div class="barn-arrival">
+        <img class="barn" src="/art/barn.png" alt="" />
+      </div>
+      <div class="tree-arrival">
+        <img class="tree" src="/art/tree.png" alt="" />
+      </div>
+      <div class="scene-grain"></div>
+    </div>
+
+    <header class="masthead">
+      <a class="wordmark" href="/" aria-label="UUID Farm home"
+        ><img
+          class="wordmark-icon"
+          src="/icons/uuid-sprout-128.png"
+          alt=""
+          width="48"
+          height="48"
+        /><span
+          >uuid farm<span class="wordmark-sub"
+            >SECOND CHANCES SINCE 2019</span
+          ></span
+        ></a
+      >
+      <div class="header-right">
+        <span class="open-sign"><i></i> The farm is open</span>
+      </div>
+    </header>
+
+    <main class="farm-main">
+      <section class="welcome" aria-labelledby="welcome-title">
+        <div class="eyebrow">
+          <span></span> A SANCTUARY FOR SPARE IDENTIFIERS
+        </div>
+        <h1 id="welcome-title">Good UUIDs.<br /><em>Second chances.</em></h1>
+        <p>
+          Somewhere, a perfectly good UUID is waiting<br
+            class="desktop-break"
+          />
+          for a new beginning. Give one a home.
+        </p>
+        <div class="field-note">
+          <svg viewBox="0 0 40 32" aria-hidden="true">
+            <path
+              d="M2 19c7-20 17 20 23-1s14 1 12 9M5 23l-2 5m11-9-2 7m13-5 1 6"
+            />
+            <circle cx="34" cy="12" r="1" /></svg
+          ><span>Small residents. Endless possibilities.</span>
+        </div>
+      </section>
+
+      <section class="registrar" aria-label="Farm reception">
+        <div class="paper-corner" aria-hidden="true"></div>
+        <div class="card-kicker">
+          <span>THE RECEPTION DESK</span><span aria-hidden="true">№ 001</span>
+        </div>
+        <nav class="service-tabs" aria-label="Shelter services">
+          <button
+            type="button"
+            id="adopt-tab"
+            aria-pressed="true"
+            aria-controls="adopt-panel"
+          >
+            Adopt
+          </button>
+          <button
+            type="button"
+            id="surrender-tab"
+            aria-pressed="false"
+            aria-controls="surrender-panel"
+          >
+            Surrender
+          </button>
+        </nav>
+        <section id="adopt-panel" aria-label="Adopt a UUID">
+          <div id="adopt-intro">
+            <div class="resident-portrait" aria-hidden="true">
+              <svg viewBox="0 0 170 70">
+                <path
+                  class="worm-line"
+                  d="M25 52C40 52 37 17 58 17s20 35 39 35 14-22 32-22"
+                />
+                <circle cx="132" cy="29" r="10" />
+                <circle class="worm-eye" cx="135" cy="26" r="2" />
+                <path class="worm-smile" d="M135 33q5 0 6-4" />
+                <path
+                  class="grass-line"
+                  d="M14 60h141m-125 0-4-8m17 8 3-6m68 6 4-8"
+                /></svg
+              ><span>READY FOR A FOREVER HOME</span>
+            </div>
+            <h2>A little room in your world?</h2>
+            <p class="card-description">
+              Our residents have plenty of life left in them.<br />We’ll find
+              you someone who’s ready to go.
+            </p>
+          </div>
+          <article
+            id="adoption-record"
+            class="adoption-record"
+            aria-labelledby="record-title"
+            hidden
+          >
+            <div class="record-heading">
+              <span class="eyebrow">ADOPTION RECORD</span
+              ><span class="record-seal" aria-label="Adopted"
+                >FOUND<br />A HOME<span>✳</span></span
+              >
+            </div>
+            <h2 id="record-title" tabindex="-1">A new beginning.</h2>
+            <p class="record-subtitle">
+              A small identifier. A whole new chapter.
+            </p>
+            <p class="record-label">YOUR NEW COMPANION</p>
+            <p id="adopted-id" class="resident-id"></p>
+            <dl class="record-details">
+              <div>
+                <dt>Name</dt>
+                <dd id="record-name"></dd>
+              </div>
+              <div>
+                <dt>Breed</dt>
+                <dd id="record-version"></dd>
+              </div>
+              <div>
+                <dt>Arrived at the farm</dt>
+                <dd id="record-surrendered"></dd>
+              </div>
+              <div>
+                <dt>Found a home</dt>
+                <dd id="record-adopted"></dd>
+              </div>
+              <div id="record-tag-row" hidden>
+                <dt>Intake note</dt>
+                <dd id="record-tag"></dd>
+              </div>
+            </dl>
+            <button id="copy-id" type="button" class="copy-button">
+              Copy UUID <span aria-hidden="true">⧉</span>
+            </button>
+            <p class="record-signoff">
+              Entrusted to your care, with love.<span>— The UUID Farm</span>
+            </p>
+          </article>
+          <form id="adopt-form">
+            <button type="submit" class="primary-button">
+              <span id="adopt-button-label">Adopt a UUID</span
+              ><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <p
+            id="adopt-status"
+            class="status-message"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </section>
+        <section id="surrender-panel" aria-label="Surrender a UUID" hidden>
+          <div class="surrender-intro">
+            <span class="intake-mark" aria-hidden="true">↙</span>
+            <h2>There’s a place for them here.</h2>
+            <p class="card-description">
+              No longer needed doesn’t mean no longer loved.<br />We’ll take
+              good care of your UUID.
+            </p>
+          </div>
+          <form id="surrender-form">
+            <label for="surrender-id">UUID TO SURRENDER</label
+            ><input
+              id="surrender-id"
+              required
+              maxlength="64"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            /><button type="submit" class="primary-button">
+              <span>Surrender a UUID</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <p
+            id="surrender-status"
+            class="status-message"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </section>
+        <div class="card-footer">
+          <span aria-hidden="true">♡</span> Every identifier deserves a second
+          chance.
+        </div>
+      </section>
+    </main>
+
+    <div class="fence-arrival" aria-hidden="true">
+      <div id="fence-surface"></div>
+      <img class="fence-art" src="/art/fence.png" alt="" />
+    </div>
+    <div id="creature-layer" aria-label="Wandering UUID residents"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+name: uuid-farm
+
+services:
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: [gcloud, emulators, firestore, start, --host-port=0.0.0.0:8787, --quiet]
+    ports:
+      - "127.0.0.1:${FIRESTORE_PORT:-8787}:8787"
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "2", "http://localhost:8787/v1/projects/demo-uuid-farm/databases/(default)/documents/uuids?pageSize=1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      target: app
+    environment:
+      GOOGLE_CLOUD_PROJECT: demo-uuid-farm
+      FIRESTORE_EMULATOR_HOST: firestore:8787
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    depends_on:
+      firestore:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, /seed, -url, http://localhost:8080, -wait, 2s, "0"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 20s
+
+  seed:
+    profiles: [tools]
+    build:
+      context: .
+      target: seed
+    entrypoint: [/seed, -url, http://app:8080]
+    command: ["25"]
+    depends_on:
+      app:
+        condition: service_healthy

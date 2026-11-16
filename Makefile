@@ -1,22 +1,41 @@
+.PHONY: build build-seed build-docker run test gen gen-docs ui up down logs seed
 
-CREDS = $(shell base64 secrets/firebase_credentials.json)
+COUNT ?= 25
 
-gen:
-	docker run -v ${PWD}:/uuid  openapitools/openapi-generator-cli generate -i /uuid/api/openapi.yaml -g go-server -o /uuid -c /uuid/config.json --git-user-id jesse0michael --git-repo-id uuid-farm --enable-post-process-file  -t /uuid/.openapi-generator/templates/go-server
-	# GO_POST_PROCESS_FILE="gofmt -w"   
+up:
+	docker compose up --build --wait
+	@docker compose port app 8080 | sed 's|^|UUID Farm: http://|'
 
-	docker run -v ${PWD}:/uuid  openapitools/openapi-generator-cli generate -i /uuid/api/openapi.yaml -g typescript-node -o /uuid/client/ts/ --git-user-id jesse0michael --git-repo-id uuid-farm --additional-properties=npmName=@jesse0michael/uuid-farm,npmVersion=1.0.0
+down:
+	docker compose down
 
-gen-docs:
-	# Requrires [Redoc](https://github.com/Redocly/redoc) 
-	# `npm install redoc-cli -g --save`
-	redoc-cli bundle api/openapi.yaml -o docs/index.html --options.disableSearch --options.hideDownloadButton
+logs:
+	docker compose logs -f
+
+seed:
+	docker compose run --build --rm seed "$(COUNT)"
+
+build-seed:
+	go build -o bin/seed ./cmd/seed
 
 build:
-	go build -o bin/uuid-server
+	go build -o bin/uuid-server ./cmd/server
 
 build-docker:
 	docker build -t uuid-server .
 
 run:
-	docker run -e GOOGLE_APPLICATION_CREDENTIALS=creds.json -e GOOGLE_CREDENTIALS="$(CREDS)" -p 8080:8080 uuid-server
+	go run ./cmd/server
+
+ui:
+	cd ui && npm ci && npm run build
+
+test:
+	go test -race ./...
+	cd ui && npm test && npm run build && npm run lint:api
+
+gen:
+	cd ui && npm run generate && npm run docs
+
+gen-docs:
+	cd ui && npm run docs

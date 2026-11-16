@@ -8,3 +8,24 @@
 bin/
 secrets/
 ui/build
+
+.env
+.env.*
+*.tsbuildinfo
+
+ui/test-results/
+ui/playwright-report/
+
+# Terraform configuration values and state stay local; provider locks are committed.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+
+# Short-lived credentials written by google-github-actions/auth.
+gha-creds-*.json

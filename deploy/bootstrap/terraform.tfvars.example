@@ -1,0 +1,23 @@
+# Copy Project ID from Firebase console > Project settings > General.
+# Firebase and Google Cloud share this ID; keep the existing Firestore database.
+project_id = "your-firebase-project"
+region     = "us-central1"
+
+# Optional monthly email alerts for this project on its existing billing account.
+# This does not link billing, limit charges, or stop services at the budget amount.
+# billing_account = "ABCDEF-123456-7890AB"
+budget_usd = 1
+
+# Keep false for the existing default Firestore database. Never create or replace
+# a database to work around an AlreadyExists error.
+create_firestore_database = false
+
+# Only for an empty project, set create_firestore_database = true and choose the
+# permanent database location before applying (defaults to region if omitted).
+# firestore_location = "us-central1"
+
+# Defaults trust Jesse0Michael/uuid-farm on master. Forks must change all four.
+# github_repo          = "Jesse0Michael/uuid-farm"
+# github_repository_id = "204247808"
+# github_owner_id      = "661374"
+# github_branch        = "master"

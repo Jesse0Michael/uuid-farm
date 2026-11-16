@@ -1,0 +1,292 @@
+.farm-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    #bcd9df 0%,
+    #d1e4df 43%,
+    #edf0d6 72%,
+    #c6d7a2 100%
+  );
+}
+.scenery {
+  position: absolute;
+  inset: 0;
+  transform-origin: bottom;
+  animation: land-rise 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.scenery img {
+  position: absolute;
+  bottom: -8%;
+  width: 100%;
+  height: 90%;
+  object-fit: fill;
+}
+.mountains {
+  clip-path: inset(0 0 42% 0);
+  animation-delay: 0.4s;
+}
+.meadow {
+  clip-path: inset(58% 0 0 0);
+  animation-delay: 0.45s;
+}
+.sun-arrival {
+  position: absolute;
+  left: var(--sun-x, 51%);
+  top: 8%;
+  width: 100px;
+  height: 100px;
+  animation: sun-rise 1.8s cubic-bezier(0.25, 1, 0.4, 1) both;
+}
+.sun {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 26px #e4c96f44);
+  animation: sun-spin 130s linear infinite;
+}
+.cloud-layer {
+  position: absolute;
+  inset: 0;
+  animation: clouds-arrive 1.4s 0.2s ease-out both;
+}
+.cloud {
+  position: absolute;
+  left: calc(-1 * var(--cloud-width));
+  width: var(--cloud-width);
+  animation: cloud-drift var(--cloud-duration) var(--cloud-delay) linear
+    infinite;
+  animation-direction: var(--cloud-direction, normal);
+}
+.cloud img {
+  display: block;
+  width: 100%;
+}
+.cloud-one {
+  --cloud-width: clamp(150px, 20vw, 300px);
+  --cloud-duration: 150s;
+  --cloud-delay: -42s;
+  --cloud-rest: 15%;
+  top: 15%;
+  opacity: 0.85;
+}
+.cloud-two {
+  --cloud-width: clamp(120px, 16vw, 240px);
+  --cloud-duration: 185s;
+  --cloud-delay: -139s;
+  --cloud-rest: 73%;
+  top: 25%;
+  opacity: 0.7;
+}
+.cloud-two img {
+  transform: scaleX(-1);
+}
+.cloud-three {
+  --cloud-width: clamp(100px, 13vw, 190px);
+  --cloud-duration: 210s;
+  --cloud-delay: -122s;
+  --cloud-rest: 47%;
+  top: 6%;
+  opacity: 0.65;
+}
+.barn-arrival {
+  position: absolute;
+  bottom: 14%;
+  left: 8%;
+  width: clamp(210px, 25vw, 380px);
+  animation: prop-rise 1.4s 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.barn {
+  display: block;
+  width: 100%;
+}
+.tree-arrival {
+  position: absolute;
+  right: -3%;
+  bottom: 14%;
+  width: clamp(230px, 27vw, 460px);
+  animation: prop-rise 1.5s 0.95s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.tree {
+  display: block;
+  width: 100%;
+  transform-origin: 50% 90%;
+  animation: tree-sway 12s ease-in-out infinite alternate;
+}
+.scene-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%235b7256' opacity='.3' filter='url(%23n)' d='M0 0h200v200H0z'/%3E%3C/svg%3E");
+}
+.fence-arrival {
+  position: fixed;
+  bottom: -45px;
+  left: -2%;
+  width: 104%;
+  height: 210px;
+  z-index: 6;
+  pointer-events: none;
+  animation: prop-rise 1.3s 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: bottom;
+}
+.fence-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  filter: drop-shadow(0 6px 5px #31483022);
+}
+#fence-surface {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 29%;
+  height: 12px;
+  pointer-events: none;
+}
+#creature-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: hidden;
+}
+@keyframes sun-rise {
+  from {
+    opacity: 0;
+    transform: translateY(80vh) rotate(-100deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+@keyframes sun-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes land-rise {
+  from {
+    transform: translateY(55vh);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes prop-rise {
+  from {
+    transform: translateY(70vh);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes tree-sway {
+  from {
+    transform: rotate(-0.7deg);
+  }
+  to {
+    transform: rotate(0.7deg);
+  }
+}
+@keyframes cloud-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100vw + var(--cloud-width)));
+  }
+}
+@keyframes clouds-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 760px) {
+  .sun-arrival {
+    top: 10%;
+    width: 50px;
+    height: 50px;
+    left: 82% !important;
+  }
+  .scenery img {
+    width: 180%;
+    left: -40%;
+    height: 70%;
+    bottom: 0;
+  }
+  .mountains {
+    clip-path: inset(0 0 38% 0);
+  }
+  .meadow {
+    clip-path: inset(62% 0 0 0);
+  }
+  .barn-arrival {
+    left: -14%;
+    width: 250px;
+    bottom: 10%;
+  }
+  .tree-arrival {
+    right: -23%;
+    width: 270px;
+    bottom: 12%;
+  }
+  .fence-arrival {
+    height: 165px;
+    bottom: -35px;
+    width: 180%;
+    left: -40%;
+  }
+  .cloud-one {
+    top: 12%;
+    --cloud-rest: 2%;
+  }
+  .cloud-two {
+    top: 35%;
+    --cloud-rest: 65%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .sun-arrival,
+    .cloud-layer,
+    .scenery,
+    .barn-arrival,
+    .tree-arrival,
+    .fence-arrival
+  ) {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .cloud {
+    animation: none !important;
+    left: var(--cloud-rest);
+  }
+}
+
+body:not(.scene-ready)
+  :is(
+    .sun-arrival,
+    .cloud-layer,
+    .cloud,
+    .scenery,
+    .barn-arrival,
+    .tree-arrival,
+    .fence-arrival
+  ) {
+  animation-play-state: paused;
+}

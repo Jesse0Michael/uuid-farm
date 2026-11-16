@@ -1,0 +1,5 @@
+# Used only for local plan/apply. GitHub Actions supplies these through TF_VAR_*.
+# First run deploy/bootstrap and push the real application image to the registry.
+project_id = "your-firebase-project"
+region     = "us-central1"
+image      = "us-central1-docker.pkg.dev/your-firebase-project/uuid-farm/app@sha256:REPLACE_WITH_64_HEX_DIGEST"

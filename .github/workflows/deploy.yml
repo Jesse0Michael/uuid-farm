@@ -1,0 +1,201 @@
+name: Deploy Cloud Run
+
+on:
+  workflow_run:
+    workflows: [Checks]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+# Terraform and image rollouts share one queue and one writer of service state.
+concurrency:
+  group: uuid-farm-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  select:
+    name: Select a tested master commit
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_branch == 'master' &&
+         github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Verify source commit and successful checks
+        id: commit
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const sha = context.payload.workflow_run?.head_sha ?? context.sha;
+            const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: 'master' });
+            if (sha !== branch.commit.sha) {
+              core.notice('A newer commit is on master; this deployment is superseded.');
+              return;
+            }
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner, repo, workflow_id: 'ci.yml', branch: 'master', event: 'push',
+              head_sha: sha, per_page: 100,
+            });
+            const latest = data.workflow_runs
+              .filter(run => run.head_sha === sha && run.head_branch === 'master' &&
+                run.head_repository?.full_name === `${owner}/${repo}`)
+              .sort((a, b) => b.id - a.id)[0];
+            if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') {
+              core.setFailed('The current master commit must pass the Checks push workflow before deployment.');
+              return;
+            }
+            core.setOutput('sha', sha);
+
+  deploy:
+    name: Build and deploy UI and API
+    needs: select
+    if: needs.select.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DEPLOY_SHA: ${{ needs.select.outputs.sha }}
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      WIF_PROVIDER: ${{ vars.WIF_PROVIDER }}
+      DEPLOYER_SERVICE_ACCOUNT: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
+      TF_VAR_region: ${{ vars.GCP_REGION }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.select.outputs.sha }}
+          persist-credentials: false
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          for name in GCP_PROJECT_ID GCP_REGION TF_STATE_BUCKET WIF_PROVIDER DEPLOYER_SERVICE_ACCOUNT; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Set the repository variable $name from the Terraform bootstrap outputs."
+              exit 1
+            fi
+          done
+          [[ "$DEPLOY_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$(git rev-parse HEAD)" == "$DEPLOY_SHA" ]]
+          image_repository="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/uuid-farm/app"
+          echo "IMAGE_REPOSITORY=$image_repository" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=${image_repository}:${DEPLOY_SHA}" >> "$GITHUB_ENV"
+
+      # Build before Google authentication so short-lived tokens cover the rollout,
+      # and build instructions never run with a Google credential file present.
+      - name: Build the tested commit
+        run: docker build --platform linux/amd64 --tag "$IMAGE_TAG" .
+
+      - name: Check master has not moved during the build
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'master' });
+            if (branch.commit.sha !== process.env.DEPLOY_SHA) {
+              core.setFailed('Master advanced during the build. Wait for the newer commit to pass Checks.');
+            }
+
+      - name: Authenticate for the image push
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Push image and resolve its immutable digest
+        shell: bash
+        run: |
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+          docker push "$IMAGE_TAG"
+          digest=$(gcloud artifacts docker images describe "$IMAGE_TAG" \
+            --project "$GCP_PROJECT_ID" --format='value(image_summary.digest)')
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "TF_VAR_image=${IMAGE_REPOSITORY}@${digest}" >> "$GITHUB_ENV"
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.17.1"
+          terraform_wrapper: false
+
+      - name: Refresh credentials for Terraform
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Initialize and validate Terraform
+        working-directory: deploy
+        run: |
+          terraform init -input=false -lockfile=readonly -backend-config="bucket=$TF_STATE_BUCKET"
+          terraform validate
+
+      - name: Plan service configuration and image together
+        working-directory: deploy
+        run: terraform plan -input=false -lock-timeout=5m -out=tfplan
+
+      - name: Summarize plan
+        working-directory: deploy
+        run: |
+          {
+            echo '### Cloud Run deployment plan'
+            echo '```'
+            terraform show -no-color tfplan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check master before applying
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'master' });
+            if (branch.commit.sha !== process.env.DEPLOY_SHA) {
+              core.setFailed('Master advanced while planning. The superseded plan will not be applied.');
+            }
+
+      - name: Refresh credentials for the rollout
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - name: Apply the saved plan
+        working-directory: deploy
+        run: terraform apply -input=false -lock-timeout=5m tfplan
+
+      - name: Check service health and report URL
+        working-directory: deploy
+        shell: bash
+        run: |
+          service_url=$(terraform output -raw service_url)
+          [[ "$service_url" == https://* ]]
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+            --retry-connrefused --max-time 30 "$service_url/healthz"
+          {
+            printf '### UUID Farm deployed\n\n'
+            printf 'Commit: `%s`\n\n' "$DEPLOY_SHA"
+            printf 'Image: `%s`\n\n' "$TF_VAR_image"
+            printf '[Open UUID Farm](%s)\n' "$service_url"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove local plan
+        if: always()
+        run: rm -f deploy/tfplan

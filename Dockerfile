@@ -1,32 +1,30 @@
-FROM golang:1.12-alpine AS build
+FROM node:24-alpine AS ui
+WORKDIR /src/ui
+COPY ui/package*.json ./
+RUN npm ci
+COPY ui/ ./
+RUN npm test && npm run build
 
-# Install git + SSL ca certificates.
-# Git is required for fetching the dependencies.
-# Ca-certificates is required to call HTTPS endpoints.
-RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates
-
-# Copy project files
-WORKDIR /go/src
-COPY . .
-
-# Fetch dependencies (go get)
-# RUN go get -d -v ./...
-
-# Fetch dependencies (go mod)
-ENV GO111MODULE=on
+FROM golang:1.27-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go mod verify
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -o /bin/uuid-server ./cmd/server
+RUN CGO_ENABLED=0 go build -trimpath -o /bin/seed ./cmd/seed
 
-# Build project
-ENV CGO_ENABLED=0
-RUN go build -a -installsuffix cgo -o uuids .
-
-FROM scratch AS runtime
-
-# Copy dependent files
-COPY --from=build /go/src/uuids ./
+FROM scratch AS seed
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /bin/seed /seed
+USER 65532:65532
+ENTRYPOINT ["/seed"]
 
-EXPOSE 8080/tcp
-
-ENTRYPOINT ["./uuids"]
+FROM scratch AS app
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /bin/uuid-server /uuid-server
+COPY --from=build /bin/seed /seed
+COPY --from=ui /src/ui/dist /ui/dist
+USER 65532:65532
+ENV PORT=8080 UI_DIR=/ui/dist
+EXPOSE 8080
+ENTRYPOINT ["/uuid-server"]

@@ -1,0 +1,57 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+        working-directory: ui
+      - name: Start isolated Firestore emulator
+        run: docker run -d --rm --name firestore -p 127.0.0.1:8787:8787 gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators gcloud emulators firestore start --host-port=0.0.0.0:8787 --quiet
+      - run: make test
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8787
+      - run: npx playwright install --with-deps chromium
+        working-directory: ui
+      - run: npm run test:e2e
+        working-directory: ui
+      - run: go vet ./...
+      - run: make build
+      - run: make gen
+      - run: git diff --exit-code -- ui/src/api-types.ts docs/index.html
+      - run: docker build -t uuid-farm:check .
+  terraform:
+    name: Terraform (${{ matrix.directory }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: [deploy, deploy/bootstrap]
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.17.1"
+          terraform_wrapper: false
+      # PR code receives no cloud identity or access to the production state.
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false -lockfile=readonly
+      - run: terraform validate
+      - run: terraform test
