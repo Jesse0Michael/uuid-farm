@@ -134,7 +134,7 @@ The new service relies on canonical lowercase UUID document IDs. Back up the dat
 stop other writers, audit, and resolve any collisions before applying a necessary migration.
 This is a separate operator task; Terraform and GitHub Actions never run it.
 
-`/healthz` checks the HTTP process, not Firestore permissions, indexes, or legacy data.
+`/health` checks the HTTP process, not Firestore permissions, indexes, or legacy data.
 A successful deployment smoke check does not replace database preparation.
 
 ## GitHub Actions variables
@@ -176,7 +176,7 @@ The deployment workflow:
    `REGION-docker.pkg.dev/PROJECT_ID/uuid-farm/app`.
 3. Passes that image's immutable `sha256` digest to Terraform.
 4. Initializes the GCS backend, creates a plan, and applies that saved plan to Cloud Run.
-5. Records the service URL in the workflow summary and requests `/healthz` without modifying data.
+5. Records the service URL in the workflow summary and requests `/health` without modifying data.
 
 The first run creates the service; later runs update its revision. One concurrency group
 serializes deployments so infrastructure and image changes cannot race. Terraform owns both

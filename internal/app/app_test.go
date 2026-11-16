@@ -19,7 +19,7 @@ func TestCombinedHandler(t *testing.T) {
 		method, path string
 		code         int
 	}{
-		{"GET", "/", 200}, {"GET", "/healthz", 204}, {"GET", "/v1/missing", 404},
+		{"GET", "/", 200}, {"GET", "/health", 204}, {"GET", "/v1/missing", 404},
 		{"POST", "/", 405}, {"DELETE", "/v1/uuids", 404},
 	} {
 		t.Run(tc.method+tc.path, func(t *testing.T) {

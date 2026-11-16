@@ -97,5 +97,5 @@ publicly editable. Listing is paginated and statistics use aggregation queries.
 
 The service uses standard Google Application Default Credentials. Configuration:
 `GOOGLE_CLOUD_PROJECT`, `PORT`, `UI_DIR`, and optional `FIRESTORE_EMULATOR_HOST`.
-The server can serve `ui/dist` and the API together. The original Heroku backend was
-retired; this modernization has not been deployed. Keep Firestore as the database.
+The server serves `ui/dist` and the API together on Cloud Run. The original Heroku
+backend is retired. Keep Firestore as the database.

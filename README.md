@@ -120,7 +120,7 @@ make build-seed
 
 The URL is the server base URL **without `/v1`**. Flags go before the integer count.
 The default target is `http://localhost:8080`. The command waits up to 30 seconds for
-`/healthz`; change that with `-wait 60s`. A count of zero checks readiness without writing
+`/health`; change that with `-wait 60s`. A count of zero checks readiness without writing
 (and is also used by Compose's app health check). Negative counts are rejected.
 
 To run the standalone seed container against a deployed server:
@@ -177,7 +177,7 @@ make build-docker   # build the combined application image
 
 `PORT`, `UI_DIR` (default `ui/dist`), and `GOOGLE_CLOUD_PROJECT` (default `uuid-farm`)
 configure the server. Logging uses `LOG_LEVEL`, `LOG_FORMAT`, `LOG_OUTPUT`, and
-`LOG_SOURCE` from `pkg/logger`. `/healthz` is a process health check, not a Firestore readiness
+`LOG_SOURCE` from `pkg/logger`. `/health` is a process health check, not a Firestore readiness
 probe. For production, prefer an explicitly configured project and platform-provided
 Google credentials. The container runs as a non-root user.
 

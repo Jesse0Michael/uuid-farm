@@ -59,7 +59,7 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 		return fmt.Errorf("url must be an http(s) server base URL without credentials, query, or fragment")
 	}
 	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	if err := ready(ctx, client, base.JoinPath("healthz").String(), *wait); err != nil {
+	if err := ready(ctx, client, base.JoinPath("health").String(), *wait); err != nil {
 		return err
 	}
 	for i := 0; i < count; i++ {

@@ -29,7 +29,7 @@ func TestSeed(t *testing.T) {
 		t.Run(count, func(t *testing.T) {
 			ids := map[uuid.UUID]bool{}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/healthz" {
+				if r.URL.Path == "/health" {
 					w.WriteHeader(204)
 					return
 				}
@@ -78,7 +78,7 @@ func TestStopsOnFailureWithoutRetry(t *testing.T) {
 		t.Run(http.StatusText(status), func(t *testing.T) {
 			calls := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/healthz" {
+				if r.URL.Path == "/health" {
 					w.WriteHeader(204)
 					return
 				}

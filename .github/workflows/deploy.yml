@@ -188,7 +188,7 @@ jobs:
           service_url=$(terraform output -raw service_url)
           [[ "$service_url" == https://* ]]
           curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-            --retry-connrefused --max-time 30 "$service_url/healthz"
+            --retry-connrefused --max-time 30 "$service_url/health"
           {
             printf '### UUID Farm deployed\n\n'
             printf 'Commit: `%s`\n\n' "$DEPLOY_SHA"

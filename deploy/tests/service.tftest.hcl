@@ -43,7 +43,7 @@ run "public_service_uses_runtime_identity_and_immutable_image" {
       google_cloud_run_v2_service.farm.template[0].scaling[0].min_instance_count == 0 &&
       google_cloud_run_v2_service.farm.template[0].scaling[0].max_instance_count == 1 &&
       google_cloud_run_v2_service.farm.template[0].containers[0].startup_probe[0].tcp_socket[0].port == 8080 &&
-      google_cloud_run_v2_service.farm.template[0].containers[0].liveness_probe[0].http_get[0].path == "/healthz"
+      google_cloud_run_v2_service.farm.template[0].containers[0].liveness_probe[0].http_get[0].path == "/health"
     )
     error_message = "Keep scale-to-zero, the one-instance limit, and process health probes aligned with the container."
   }

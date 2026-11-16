@@ -68,7 +68,8 @@ func Run() error {
 // conflicts with the API's all-method /v1/ fallback in net/http.ServeMux.
 func newHandler(service api.Service, staticDir string) *http.ServeMux {
 	router := api.NewRouter(service)
-	router.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	// Cloud Run reserves paths ending in z at its public frontend.
+	router.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	files := http.FileServer(http.Dir(staticDir))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
