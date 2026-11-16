@@ -48,23 +48,28 @@ async function prepareMusic(
   );
 }
 
-test("blocked autoplay starts after a page interaction and music can be muted", async ({
+test("music defaults on while blocked autoplay waits for a page interaction", async ({
   page,
 }) => {
   await prepareMusic(page);
   await page.goto("/");
   const toggle = page.getByRole("button", { name: "Farm music", exact: true });
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
+  await expect(toggle).toHaveAttribute("title", "Mute farm music");
+  await expect(page.locator("#music-label")).toHaveText("Music on");
   await page.getByRole("button", { name: "Surrender", exact: true }).click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "true");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
   await page.getByRole("button", { name: "Adopt", exact: true }).click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "2");
 });
 
-test("the music button starts blocked audio once, supports keyboard use, and remembers mute", async ({
+test("the music button mutes blocked autoplay, supports keyboard toggling, and remembers mute", async ({
   page,
 }) => {
   await prepareMusic(page);
@@ -72,9 +77,17 @@ test("the music button starts blocked audio once, supports keyboard use, and rem
   const toggle = page.getByRole("button", { name: "Farm music", exact: true });
   await toggle.focus();
   await page.keyboard.press("Space");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "2");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
+  await expect(page.locator("#music-label")).toHaveText("Music off");
+  await page.getByRole("button", { name: "Surrender", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "1");
+  await toggle.focus();
   await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "2");
+  await page.keyboard.press("Space");
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await page.reload();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
@@ -89,10 +102,13 @@ test("allowed autoplay is reflected in the control and mute works without browse
   await page.goto("/");
   const toggle = page.getByRole("button", { name: "Farm music", exact: true });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "true");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "true");
 });
 
 test("unavailable audio stays off and can be retried without disrupting reception", async ({
@@ -105,6 +121,7 @@ test("unavailable audio stays off and can be retried without disrupting receptio
   const toggle = page.getByRole("button", { name: "Farm music", exact: true });
   await expect(page.locator("#music-status")).toContainText("unavailable");
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
   await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "2");
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
@@ -124,8 +141,10 @@ test("the music control remains reachable on a narrow screen", async ({ page }) 
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
   expect(bounds!.width).toBeGreaterThanOrEqual(44);
   expect(bounds!.height).toBeGreaterThanOrEqual(44);
-  await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("html")).toHaveAttribute("data-music-attempts", "1");
 });
 
 test("the shipped recording is playable after a user gesture", async ({ page }) => {
@@ -134,9 +153,12 @@ test("the shipped recording is playable after a user gesture", async ({ page }) 
   );
   await page.goto("/");
   const toggle = page.getByRole("button", { name: "Farm music", exact: true });
-  if ((await toggle.getAttribute("aria-pressed")) !== "true") await toggle.click();
+  if ((await toggle.getAttribute("data-playing")) !== "true")
+    await page.getByRole("button", { name: "Surrender", exact: true }).click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("data-playing", "true");
   await expect(page.locator("#music-status")).toBeEmpty();
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAttribute("data-playing", "false");
 });

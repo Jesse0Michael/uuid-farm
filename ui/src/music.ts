@@ -26,10 +26,11 @@ export function startFarmMusic() {
   let needsInteraction = enabled;
 
   function render() {
-    button!.setAttribute("aria-pressed", String(playing));
+    // Autoplay can wait for a gesture while the listener's sound preference is on.
+    button!.setAttribute("aria-pressed", String(enabled));
     button!.dataset.playing = String(playing);
-    button!.title = playing ? "Mute farm music" : "Play Barnyard Groove";
-    label!.textContent = playing ? "Music on" : "Music off";
+    button!.title = enabled ? "Mute farm music" : "Play Barnyard Groove";
+    label!.textContent = enabled ? "Music on" : "Music off";
   }
 
   function remember() {
@@ -45,6 +46,7 @@ export function startFarmMusic() {
     const currentAttempt = ++attempt;
     pending = true;
     status!.textContent = "";
+    render();
     try {
       if (audio.error) audio.load();
       await audio.play();
@@ -56,8 +58,10 @@ export function startFarmMusic() {
       playing = false;
       needsInteraction =
         error instanceof DOMException && error.name === "NotAllowedError";
-      if (!needsInteraction)
+      if (!needsInteraction) {
+        enabled = false;
         status!.textContent = "Farm music is unavailable. You can try again.";
+      }
     } finally {
       if (currentAttempt === attempt) {
         pending = false;
@@ -67,7 +71,7 @@ export function startFarmMusic() {
   }
 
   button.addEventListener("click", () => {
-    if (playing || pending) {
+    if (enabled) {
       enabled = false;
       needsInteraction = false;
       ++attempt;
@@ -111,6 +115,7 @@ export function startFarmMusic() {
     ++attempt;
     pending = false;
     playing = false;
+    enabled = false;
     needsInteraction = false;
     status.textContent = "Farm music is unavailable. You can try again.";
     render();

@@ -1,12 +1,16 @@
 # UUID Farm
 
-A place for UUIDs to get a second chance at life. Surrender identifiers you no longer
-need, or adopt one that is waiting for a home. The UUIDs really are stored in Firestore.
+UUID Farm is a place for UUIDs to get a second chance at life. Surrender an identifier
+you no longer need, or adopt one that’s waiting for a home. The UUIDs really are stored
+in a database and passed along to whoever adopts them next.
 
-The original 2019 version used React, a published Node client, Firebase Hosting, and
-Heroku. The Heroku backend was retired. This revision keeps Adopt/Surrender and Firestore, with an illustrated interactive
-farm, one Go server, and a small TypeScript frontend.
-It has not yet been deployed.
+I started this project as a joke because, obviously, these unique identifiers are not
+intended to be reused. I built it as though it was real using Firestore as a database
+and an OpenAPI spec as if others would potentially use this server as a service. I
+ended up contributing improvements to OpenAPI Generator during Hacktoberfest.
+
+I revisited the project with AI assistance to give the farm a new look and add little
+UUID inchworms you can pick up and move around.
 
 ## Life on the farm
 
@@ -21,9 +25,10 @@ Returning residents keep their name and intake note.
 Painted clouds drift slowly across the sky, wrapping offscreen; the wind chooses left or
 right on each page load.
 
-“Barnyard Groove” loops quietly on the page, with a music button beside the open sign.
-Browsers that block autoplay wait for an interaction; the button can also start the
-music. Turning it off is remembered on this browser. The original recording is kept
+“Barnyard Groove” defaults to on and loops quietly on the page, with a music button
+beside the open sign. Browsers that block autoplay wait for an interaction; the toggle
+stays on while waiting, and tapping it turns music off immediately. Turning it off is
+remembered on this browser. The original recording is kept
 in `assets/audio/barnyard-groove-source.m4a`; the browser AAC copy lives in
 `ui/public/audio/barnyard-groove.m4a`.
 
