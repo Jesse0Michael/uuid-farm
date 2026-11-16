@@ -58,8 +58,8 @@ make build-docker
 `make test` runs Go race tests, frontend request tests, frontend build, and API lint.
 Browser tests mock the API and require Playwright Chromium (`npx playwright install chromium`)
 or installed Chrome with `PLAYWRIGHT_CHROME=1 npm run test:e2e`. Keep reduced-motion,
-keyboard interactions, and narrow screen layouts working. Resident browsing is capped
-at three pages; failures or an empty shelter use decorative UUIDs, never fake adoptions.
+keyboard interactions, and narrow screen layouts working. The landing page creates four
+fresh decorative UUIDs locally; never fetch residents for the scene or fake adoptions.
 Use `go vet ./...` as well for Go changes. Run `goimports -w` on changed Go files and
 `golangci-lint run --fix`. Use table-driven tests with `t.Context()`, `fmt.Errorf` with
 `%w` for wrapped errors, and `slog` with the `"err"` key for logging errors.

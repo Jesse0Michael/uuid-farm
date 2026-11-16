@@ -8,13 +8,11 @@ import {
 } from "./creature-motion.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
-const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+const CREATURE_COUNT = 4;
 type Perch = "card" | "fence";
 type Mode = "walking" | "held" | "falling";
 type Surface = { kind: Perch; left: number; right: number; y: number };
 type Creature = {
-  id: string;
-  pendingID?: string;
   button: HTMLButtonElement;
   letters: SVGTextElement[];
   body: SVGPathElement;
@@ -40,9 +38,6 @@ type Creature = {
 };
 
 export interface CreatureController {
-  setResidents(ids: string[]): void;
-  addResident(id: string): void;
-  removeResident(id: string): void;
   destroy(): void;
 }
 
@@ -57,7 +52,6 @@ function svg<K extends keyof SVGElementTagNameMap>(
 }
 const clamp = (value: number, low: number, high: number) =>
   Math.min(Math.max(value, low), Math.max(low, high));
-const fallbackID = () => crypto.randomUUID();
 
 /** Decorative residents: moving or dismissing them never alters the shelter's records. */
 export function createCreatures(): CreatureController {
@@ -72,12 +66,12 @@ export function createCreatures(): CreatureController {
   let elapsed = 0;
   let geometryDirty = true;
   let surfaceAnimating = false;
+  let measuredWidth = window.innerWidth;
   let scale =
     window.innerWidth < 600 ? 0.7 : window.innerWidth < 1000 ? 0.85 : 1;
   let surfaces: Surface[] = [];
   let cardRect: DOMRect | null = null;
   const creatures: Creature[] = [];
-  const dismissed = new Set<string>();
   const events = new AbortController();
   const announcement = document.createElement("span");
   announcement.className = "creature-announcement";
@@ -110,6 +104,24 @@ export function createCreatures(): CreatureController {
         });
     }
     geometryDirty = false;
+    if (measuredWidth !== window.innerWidth) {
+      measuredWidth = window.innerWidth;
+      const fence = surfaceFor("fence");
+      if (fence) {
+        // Keep the fence companions apart after rotation instead of clamping
+        // several of them onto the same edge. Leave active drags and falls alone.
+        const walking = creatures
+          .filter(
+            (creature) => creature.perch === "fence" && creature.mode === "walking",
+          )
+          .sort((a, b) => a.x - b.x);
+        const [left, right] = bounds(fence);
+        walking.forEach((creature, index) => {
+          const position = walking.length > 1 ? index / (walking.length - 1) : 0.5;
+          creature.x = left + (right - left) * position;
+        });
+      }
+    }
   }
   function surfaceFor(kind: Perch) {
     return surfaces.find((surface) => surface.kind === kind);
@@ -121,20 +133,14 @@ export function createCreatures(): CreatureController {
       Math.min(window.innerWidth - padding, surface.right - padding),
     ];
   }
-  function assign(creature: Creature, id: string) {
-    creature.id = id;
-    creature.button.dataset.uuid = id;
-    creature.button.setAttribute(
-      "aria-label",
-      `UUID ${id}. Press Enter to pick up, arrow keys to move, Enter to release, Escape to return.`,
-    );
-    creature.letters.forEach((letter, index) => {
-      letter.textContent = id[index] || "";
-    });
-  }
   function create(id: string, index: number) {
     const button = document.createElement("button");
     button.type = "button";
+    button.dataset.uuid = id;
+    button.setAttribute(
+      "aria-label",
+      `UUID ${id}. Press Enter to pick up, arrow keys to move, Enter to release, Escape to return.`,
+    );
     button.className = `uuid-creature uuid-creature--${index % 3}`;
     button.title = "Pick me up. I like the fence and the paperwork.";
     button.setAttribute("aria-pressed", "false");
@@ -154,6 +160,7 @@ export function createCreatures(): CreatureController {
         "dominant-baseline": "central",
         class: `creature-letter${joint ? " creature-letter--joint" : ""}`,
       });
+      letter.textContent = id[index];
       if (joint) letter.dataset.jointIndex = String(index);
       drawing.append(letter);
       return letter;
@@ -188,11 +195,9 @@ export function createCreatures(): CreatureController {
     const x =
       perch === "card"
         ? left + (right - left) * 0.7
-        : left +
-          (right - left) * ((index - 1) / Math.max(1, desiredCount() - 2));
+        : left + (right - left) * ((index - 1) / (CREATURE_COUNT - 2));
     const y = surface ? surface.y - 7 * scale : window.innerHeight * 0.8;
     const creature: Creature = {
-      id,
       button,
       body,
       joints,
@@ -216,7 +221,6 @@ export function createCreatures(): CreatureController {
       lastPointerX: x,
       lastPointerTime: 0,
     };
-    assign(creature, id);
     button.addEventListener(
       "pointerdown",
       (event) => {
@@ -360,10 +364,6 @@ export function createCreatures(): CreatureController {
     schedule();
   }
   function restore(creature: Creature) {
-    if (creature.pendingID) {
-      assign(creature, creature.pendingID);
-      delete creature.pendingID;
-    }
     creature.x = creature.origin.x;
     creature.y = creature.origin.y;
     creature.perch = creature.origin.perch;
@@ -376,10 +376,6 @@ export function createCreatures(): CreatureController {
     schedule();
   }
   function release(creature: Creature) {
-    if (creature.pendingID) {
-      assign(creature, creature.pendingID);
-      delete creature.pendingID;
-    }
     creature.pointer = null;
     creature.mode = "falling";
     creature.vy = 0;
@@ -410,15 +406,13 @@ export function createCreatures(): CreatureController {
     announcement.textContent = `Resident settled on the ${surface.kind === "card" ? "paperwork" : "fence"}.`;
   }
   function dismiss(creature: Creature) {
-    dismissed.add(creature.id);
     const focused = document.activeElement === creature.button;
     creature.button.remove();
     const index = creatures.indexOf(creature);
     if (index >= 0) creatures.splice(index, 1);
     if (focused)
       (document.getElementById("adopt-tab") as HTMLElement | null)?.focus();
-    announcement.textContent =
-      "Resident wandered out of view. Their shelter record is unchanged.";
+    announcement.textContent = "Resident wandered out of view.";
   }
 
   function paint(creature: Creature) {
@@ -577,9 +571,6 @@ export function createCreatures(): CreatureController {
     )
       schedule();
   }
-  function desiredCount() {
-    return window.innerWidth < 1000 ? 3 : 5;
-  }
   function dirty() {
     geometryDirty = true;
     schedule();
@@ -589,22 +580,7 @@ export function createCreatures(): CreatureController {
     const target = document.querySelector(selector);
     if (target) observer.observe(target);
   }
-  window.addEventListener(
-    "resize",
-    () => {
-      dirty();
-      // Preserve the card resident while avoiding an overcrowded fence after rotation.
-      while (creatures.length > desiredCount()) {
-        const candidate = creatures.findLast(
-          (creature) => creature.mode !== "held" && creature.perch === "fence",
-        );
-        if (!candidate) break;
-        candidate.button.remove();
-        creatures.splice(creatures.indexOf(candidate), 1);
-      }
-    },
-    { signal: events.signal },
-  );
+  window.addEventListener("resize", dirty, { signal: events.signal });
   window.addEventListener("scroll", dirty, {
     signal: events.signal,
     passive: true,
@@ -675,66 +651,11 @@ export function createCreatures(): CreatureController {
     { signal: events.signal },
   );
   measure();
-  for (let index = 0; index < desiredCount(); index++)
-    create(fallbackID(), index);
+  for (let index = 0; index < CREATURE_COUNT; index++)
+    create(crypto.randomUUID(), index);
   schedule();
 
   return {
-    setResidents(ids) {
-      const real = [
-        ...new Set(ids.filter((id) => UUID.test(id) && !dismissed.has(id))),
-      ];
-      if (!real.length) return;
-      const present = new Set(
-        creatures.flatMap((creature) => [creature.id, creature.pendingID]),
-      );
-      const waiting = real.filter((id) => !present.has(id));
-      // Preserve positions and interactions while replacing fallback lettering.
-      // A surrender may already have placed a resident before this read finishes.
-      for (const creature of creatures) {
-        if (
-          real.includes(creature.id) ||
-          (creature.pendingID && real.includes(creature.pendingID))
-        )
-          continue;
-        const id = waiting.shift();
-        if (!id) break;
-        if (creature.mode === "held") creature.pendingID = id;
-        else assign(creature, id);
-      }
-      schedule();
-    },
-    addResident(id) {
-      if (
-        !UUID.test(id) ||
-        creatures.some(
-          (creature) => creature.id === id || creature.pendingID === id,
-        )
-      )
-        return;
-      dismissed.delete(id);
-      if (creatures.length < desiredCount()) create(id, creatures.length);
-      else {
-        const replace = creatures.find(
-          (creature) =>
-            creature.mode === "walking" && creature.perch === "fence",
-        );
-        if (replace) {
-          assign(replace, id);
-          const card = surfaceFor("card");
-          if (card && !creatures.some((creature) => creature.perch === "card"))
-            land(replace, card);
-        }
-      }
-      schedule();
-    },
-    removeResident(id) {
-      for (const creature of creatures) {
-        if (creature.pendingID === id) delete creature.pendingID;
-        if (creature.id === id) assign(creature, fallbackID());
-      }
-      schedule();
-    },
     destroy() {
       stopped = true;
       cancelAnimationFrame(frame);

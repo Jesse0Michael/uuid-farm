@@ -19,8 +19,6 @@ async function mockReception(page: Page) {
   await page.route("**/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    if (request.method() === "GET" && path === "/v1/uuids")
-      return route.fulfill({ json: { items: [] } });
     if (request.method() === "POST" && path === "/v1/uuids")
       return route.fulfill({ json: resident });
     return route.fulfill({ status: 404, json: { code: 404, message: "Not found" } });
@@ -113,16 +111,15 @@ test("a late history response cannot replace another resident's story", async ({
   await expect(story.getByRole("status")).toContainText("Most recent first");
 });
 
-test("returning an adopted resident restores its creature even when the initial list arrives late", async ({ page }) => {
-  let release!: () => void;
-  const hold = new Promise<void>((resolve) => { release = resolve; });
+test("returning and readopting a resident updates its story and leaves decorative creatures alone", async ({ page }) => {
   let available = true;
   let cycle = 0;
+  const listRequests: string[] = [];
   await page.route("**/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === "GET" && path === "/v1/uuids") {
-      await hold;
+      listRequests.push(request.url());
       return route.fulfill({ json: { items: [] } });
     }
     if (request.method() === "POST" && path === "/v1/uuids") {
@@ -140,19 +137,25 @@ test("returning an adopted resident restores its creature even when the initial 
     return route.fulfill({ status: 404 });
   });
   await page.goto("/");
+  const creatures = page.locator(".uuid-creature");
+  await expect(creatures).toHaveCount(4);
+  const readIDs = () => creatures.evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLElement).dataset.uuid),
+  );
+  const ids = await readIDs();
   await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
   await expect(page.locator("#adopted-id")).toHaveText(id);
   await page.getByRole("button", { name: "Surrender", exact: true }).click();
   await page.getByLabel("UUID TO SURRENDER", { exact: true }).fill(id);
   await page.getByRole("button", { name: "Surrender a UUID", exact: true }).click();
   await expect(page.locator("#surrender-status")).toContainText("Welcome to the farm");
-  release();
   await page.getByRole("button", { name: "Adopt", exact: true }).click();
   await expect(page.locator("#adoption-record")).toBeHidden();
-  await expect(page.locator(`.uuid-creature[data-uuid="${id}"]`)).toHaveCount(1);
+  expect(await readIDs()).toEqual(ids);
   await page.getByRole("button", { name: "Adopt a UUID", exact: true }).click();
-  await expect(page.locator(`.uuid-creature[data-uuid="${id}"]`)).toHaveCount(0);
+  expect(await readIDs()).toEqual(ids);
   await page.locator("#resident-history summary").click();
   await expect(page.locator("#resident-history li")).toHaveCount(4);
   expect(cycle).toBe(2);
+  expect(listRequests).toEqual([]);
 });

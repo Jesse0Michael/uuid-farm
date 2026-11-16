@@ -7,11 +7,17 @@ const resident = {
   surrenderDate: "2025-06-15T12:00:00Z",
   adoptionDate: "2026-11-15T12:00:00Z",
 };
-const alreadyAdopted = "223e4567-e89b-42d3-a456-426614174000";
+
+async function firstCreature(page: Page) {
+  const first = page.locator(".uuid-creature").first();
+  await expect(first).toBeVisible();
+  const id = await first.getAttribute("data-uuid");
+  return page.locator(`.uuid-creature[data-uuid="${id}"]`);
+}
 
 async function mockFarm(
   page: Page,
-  options: { adoptionStatus?: number; offline?: boolean; empty?: boolean } = {},
+  options: { adoptionStatus?: number; offline?: boolean } = {},
 ) {
   const mutations: { method: string; path: string }[] = [];
   await page.route("**/v1/**", async (route) => {
@@ -20,18 +26,6 @@ async function mockFarm(
     if (request.method() !== "GET")
       mutations.push({ method: request.method(), path: url.pathname });
     if (options.offline) return route.abort("connectionrefused");
-    if (request.method() === "GET" && url.pathname === "/v1/uuids") {
-      return route.fulfill({
-        json: {
-          items: options.empty
-            ? []
-            : [
-                { ...resident, adoptionDate: "" },
-                { id: alreadyAdopted, adoptionDate: resident.adoptionDate },
-              ],
-        },
-      });
-    }
     if (request.method() === "POST" && url.pathname === "/v1/uuids") {
       const status = options.adoptionStatus ?? 200;
       return route.fulfill({
@@ -108,7 +102,7 @@ for (const status of [404, 503]) {
   test(`Adoption HTTP ${status} reports the outcome without inventing a certificate`, async ({
     page,
   }) => {
-    await mockFarm(page, { adoptionStatus: status, empty: true });
+    await mockFarm(page, { adoptionStatus: status });
     await page.goto("/");
     await page
       .getByRole("button", { name: "Adopt a UUID", exact: true })
@@ -126,17 +120,40 @@ for (const status of [404, 503]) {
   });
 }
 
-test("Available residents appear as creatures; adopted residents are excluded", async ({
+test("Four fresh creatures appear on each page load without requesting residents", async ({
   page,
 }) => {
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/v1/"))
+      requests.push(request.url());
+  });
   await mockFarm(page);
   await page.goto("/");
-  await expect(
-    page.locator(`.uuid-creature[data-uuid="${resident.id}"]`),
-  ).toHaveCount(1);
-  await expect(
-    page.locator(`.uuid-creature[data-uuid="${alreadyAdopted}"]`),
-  ).toHaveCount(0);
+  const creatures = page.locator(".uuid-creature");
+  await expect(creatures).toHaveCount(4);
+  const readIDs = () => creatures.evaluateAll((nodes) =>
+    nodes.map((node) => (node as HTMLElement).dataset.uuid!),
+  );
+  const ids = await readIDs();
+  expect(new Set(ids).size).toBe(4);
+  for (const id of ids)
+    expect(id).toMatch(/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(creatures).toHaveCount(4);
+  const fenceSpacing = () => page.locator('.uuid-creature[data-perch="fence"]').evaluateAll((nodes) => {
+    const positions = nodes.map((node) => node.getBoundingClientRect().x).sort((a, b) => a - b);
+    return Math.min(...positions.slice(1).map((x, index) => x - positions[index]));
+  });
+  await expect.poll(fenceSpacing).toBeGreaterThan(40);
+  expect(await readIDs()).toEqual(ids);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect.poll(fenceSpacing).toBeGreaterThan(40);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  await expect(creatures).toHaveCount(4);
+  expect((await readIDs()).some((id) => ids.includes(id))).toBe(false);
+  expect(requests).toEqual([]);
 });
 
 test("Offline API leaves decorative creatures and an honest failure state", async ({
@@ -287,7 +304,7 @@ test("Keyboard pickup, drop, and dismissal do not mutate shelter records", async
 }) => {
   const mutations = await mockFarm(page);
   await page.goto("/");
-  const creature = page.locator(`.uuid-creature[data-uuid="${resident.id}"]`);
+  const creature = await firstCreature(page);
   await expect(creature).toHaveCount(1);
   await creature.focus();
   await page.keyboard.press("Enter");
@@ -308,7 +325,7 @@ test("Keyboard pickup, drop, and dismissal do not mutate shelter records", async
   await page.keyboard.press("Enter");
   await expect(creature).toHaveCount(0);
   await expect(page.locator(".creature-announcement")).toContainText(
-    "shelter record is unchanged",
+    "wandered out of view",
   );
   await expect(page.locator("#adopt-tab")).toBeFocused();
   expect(mutations).toEqual([]);
@@ -319,7 +336,7 @@ test("Pointer dragging lands residents on the fence and card, then dismisses the
 }) => {
   const mutations = await mockFarm(page);
   await page.goto("/");
-  const creature = page.locator(`.uuid-creature[data-uuid="${resident.id}"]`);
+  const creature = await firstCreature(page);
   await expect(creature).toHaveAttribute("data-perch", "card");
   await expect(creature).toHaveAttribute("data-mode", "walking");
 
@@ -362,7 +379,7 @@ test("Pointer dragging lands residents on the fence and card, then dismisses the
   await page.mouse.up();
   await expect(creature).toHaveCount(0);
   await expect(page.locator(".creature-announcement")).toContainText(
-    "shelter record is unchanged",
+    "wandered out of view",
   );
   expect(mutations).toEqual([]);
 });
@@ -386,7 +403,7 @@ test("UUID groups hinge at their hyphens and vary their actions without changing
   await page.clock.pauseAt(new Date(start.getTime() + 60_000));
   await page.clock.runFor(800);
 
-  const creature = page.locator(`.uuid-creature[data-uuid="${resident.id}"]`);
+  const creature = await firstCreature(page);
   await expect(creature.locator(".creature-letter--joint")).toHaveText([
     "-", "-", "-", "-",
   ]);
@@ -402,7 +419,7 @@ test("UUID groups hinge at their hyphens and vary their actions without changing
       };
     }),
   );
-  expect(letters.map((letter) => letter.text).join("")).toBe(resident.id);
+  expect(letters.map((letter) => letter.text).join("")).toBe(await creature.getAttribute("data-uuid"));
   const hinges = [0, 8, 13, 18, 23, 35];
   for (let group = 0; group < hinges.length - 1; group++) {
     const startIndex = hinges[group];
@@ -440,7 +457,7 @@ test("System reduced motion freezes creature gestures and resumes them when requ
   const mutations = await mockFarm(page);
   await page.goto("/");
   await expect(page.locator("body")).toHaveClass(/scene-ready/);
-  const creature = page.locator(`.uuid-creature[data-uuid="${resident.id}"]`);
+  const creature = await firstCreature(page);
   const drawing = () => creature.evaluate((node) => node.innerHTML);
   const laterDrawing = () => creature.evaluate(async (node) => {
     for (let frame = 0; frame < 4; frame++)
@@ -474,7 +491,7 @@ test("Normal-motion dragging by an outer hyphen settles the dangling body on eac
       if (timing && Number.isFinite(Number(timing.endTime))) animation.finish();
     }
   });
-  const creature = page.locator(`.uuid-creature[data-uuid="${resident.id}"]`);
+  const creature = await firstCreature(page);
   const fence = await page.locator("#fence-surface").boundingBox();
   const card = await page.locator(".registrar").boundingBox();
   if (!fence || !card) throw new Error("Missing landing surfaces");

@@ -37,14 +37,14 @@ fence lets it fall out of view. These interactions never change Firestore record
 Keyboard users can focus a creature, press Enter/Space to pick it up, move with arrow
 keys (Shift for larger steps), press Enter/Space to drop, or Escape to return it.
 
-The scene uses up to six available UUIDs from at most three API pages. If the service is
-unavailable or none are found in those pages, decorative UUIDs keep the farm company.
+Each page load creates four fresh decorative UUIDs in the browser. The scene does not
+fetch residents or synchronize its creatures with adoption and surrender records.
 Actual adoption and surrender always require a successful API response. Animation pauses
 when the tab is hidden, and OS reduced-motion preferences keep the scene still.
 
 Artwork lives in `ui/public/art/`; generation prompts and provenance are in
 [assets/art-direction.md](assets/art-direction.md). Browser tests mock the API so they can
-exercise adoption, surrender, fallback, accessibility, and dragging without changing data:
+exercise adoption, surrender, offline behavior, accessibility, and dragging without changing data:
 
 ```sh
 cd ui

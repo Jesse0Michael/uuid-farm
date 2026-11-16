@@ -1,12 +1,6 @@
 import "./index.css";
 import { startFarmMusic } from "./music.ts";
-import {
-  adopt,
-  surrender,
-  listAvailableResidents,
-  ApiError,
-  type Resident,
-} from "./api.ts";
+import { adopt, surrender, ApiError, type Resident } from "./api.ts";
 import { createCreatures } from "./creatures.ts";
 import { createHistory } from "./history.ts";
 
@@ -29,7 +23,7 @@ Promise.allSettled(
 });
 
 const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
-const creatures = createCreatures();
+createCreatures();
 document.documentElement.style.setProperty(
   "--sun-x",
   `${44 + Math.random() * 12}%`,
@@ -38,30 +32,6 @@ document.documentElement.style.setProperty(
 document.documentElement.style.setProperty(
   "--cloud-direction",
   Math.random() < 0.5 ? "normal" : "reverse",
-);
-
-const adoptedIDs = new Set<string>();
-const surrenderedIDs = new Set<string>();
-const residentsAbort = new AbortController();
-listAvailableResidents(fetch, residentsAbort.signal)
-  .then((residents) => {
-    const ids = [
-      ...new Set([
-        ...residents.map((resident) => resident.id),
-        ...surrenderedIDs,
-      ]),
-    ].filter((id) => !adoptedIDs.has(id));
-    creatures.setResidents(ids);
-  })
-  .catch(() => {
-    // Keep the decorative visitors when the resident list is unavailable.
-  });
-window.addEventListener(
-  "pagehide",
-  () => {
-    residentsAbort.abort();
-  },
-  { once: true },
 );
 
 let latestResident: Resident | undefined;
@@ -146,18 +116,12 @@ for (const action of ["adopt", "surrender"]) {
     try {
       if (action === "adopt") {
         const resident = await adopt();
-        adoptedIDs.add(resident.id);
-        surrenderedIDs.delete(resident.id);
-        creatures.removeResident(resident.id);
         showRecord(resident);
         status.textContent = "It’s official. They’re coming home with you.";
       } else {
         const resident = await surrender(
           element<HTMLInputElement>("surrender-id").value,
         );
-        surrenderedIDs.add(resident.id);
-        adoptedIDs.delete(resident.id);
-        creatures.addResident(resident.id);
         if (latestResident?.id === resident.id) {
           latestResident = undefined;
           history.setResident("");
