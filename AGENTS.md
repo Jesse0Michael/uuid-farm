@@ -2,6 +2,8 @@
 
 UUID Farm is satire played straight: people surrender unwanted UUIDs and others adopt
 those same UUIDs. Keep user-facing copy appropriate for an earnest animal shelter.
+API documentation is technical: describe UUID records, operations, lifecycle states,
+constraints, and errors directly. Keep shelter and resident language out of the OpenAPI spec.
 
 ## Scope
 

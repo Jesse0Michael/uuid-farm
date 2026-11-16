@@ -65,7 +65,7 @@ export function createCreatures(): CreatureController {
   let previous = 0;
   let elapsed = 0;
   let geometryDirty = true;
-  let surfaceAnimating = false;
+  const surfaceAnimations = new Set<string>();
   let measuredWidth = window.innerWidth;
   let scale =
     window.innerWidth < 600 ? 0.7 : window.innerWidth < 1000 ? 0.85 : 1;
@@ -83,12 +83,19 @@ export function createCreatures(): CreatureController {
     if (!stopped && !document.hidden && frame === 0)
       frame = requestAnimationFrame(tick);
   }
+  function reading() {
+    return document.body.classList.contains("is-reading");
+  }
+  function focusReception() {
+    document.getElementById(reading() ? "docs-tab" : "adopt-tab")
+      ?.focus({ preventScroll: true });
+  }
   function measure() {
     scale = window.innerWidth < 600 ? 0.7 : window.innerWidth < 1000 ? 0.85 : 1;
     surfaces = [];
     cardRect = null;
     for (const [selector, kind] of [
-      [".registrar", "card"],
+      [reading() ? ".field-guide" : ".registrar", "card"],
       ["#fence-surface", "fence"],
     ] as const) {
       const node = document.querySelector(selector);
@@ -360,10 +367,11 @@ export function createCreatures(): CreatureController {
     creature.button.classList.add("is-held");
     creature.button.setAttribute("aria-pressed", "true");
     announcement.textContent =
-      "Resident picked up. Place them on the fence or the top of the card.";
+      "Resident picked up. Place them on the fence or the top of the paperwork.";
     schedule();
   }
   function restore(creature: Creature) {
+    const pointer = creature.pointer;
     creature.x = creature.origin.x;
     creature.y = creature.origin.y;
     creature.perch = creature.origin.perch;
@@ -373,6 +381,8 @@ export function createCreatures(): CreatureController {
     creature.vy = 0;
     creature.button.classList.remove("is-held");
     creature.button.setAttribute("aria-pressed", "false");
+    if (pointer !== null && creature.button.hasPointerCapture(pointer))
+      creature.button.releasePointerCapture(pointer);
     schedule();
   }
   function release(creature: Creature) {
@@ -410,8 +420,7 @@ export function createCreatures(): CreatureController {
     creature.button.remove();
     const index = creatures.indexOf(creature);
     if (index >= 0) creatures.splice(index, 1);
-    if (focused)
-      (document.getElementById("adopt-tab") as HTMLElement | null)?.focus();
+    if (focused) focusReception();
     announcement.textContent = "Resident wandered out of view.";
   }
 
@@ -420,19 +429,22 @@ export function createCreatures(): CreatureController {
     // The foreground paperwork occludes residents walking behind it. Avoid
     // invisible hit targets over copy/submit controls when the paper is tall.
     const halfBody = 118 * scale;
-    const occluded =
-      mode === "walking" &&
+    const behindPaper =
       creature.perch === "fence" &&
       cardRect !== null &&
       creature.y > cardRect.top + 10 &&
       creature.y < cardRect.bottom &&
       creature.x + halfBody > cardRect.left &&
       creature.x - halfBody < cardRect.right;
+    // Paper residents leave with the page as it scrolls. Remove clipped
+    // companions from keyboard navigation until their perch is visible again.
+    const offscreen = creature.y < 0 || creature.y > window.innerHeight;
+    const occluded = mode === "walking" && (behindPaper || offscreen);
     creature.button.dataset.occluded = String(occluded);
     creature.button.tabIndex = occluded ? -1 : 0;
     creature.button.setAttribute("aria-hidden", String(occluded));
     if (occluded && document.activeElement === creature.button) {
-      document.getElementById("adopt-tab")?.focus({ preventScroll: true });
+      focusReception();
     }
     const pose = poseMotion(creature.motion, {
       mode,
@@ -506,7 +518,7 @@ export function createCreatures(): CreatureController {
     elapsed += dt;
     if (
       geometryDirty ||
-      surfaceAnimating ||
+      surfaceAnimations.size > 0 ||
       elapsed < 5 ||
       creatures.some((creature) => creature.mode !== "walking")
     )
@@ -566,7 +578,7 @@ export function createCreatures(): CreatureController {
       paint(creature);
     }
     if (
-      (!reduced && (creatures.length > 0 || surfaceAnimating)) ||
+      (!reduced && (creatures.length > 0 || surfaceAnimations.size > 0)) ||
       creatures.some((creature) => creature.mode === "falling")
     )
       schedule();
@@ -576,7 +588,7 @@ export function createCreatures(): CreatureController {
     schedule();
   }
   const observer = new ResizeObserver(dirty);
-  for (const selector of [".registrar", "#fence-surface"]) {
+  for (const selector of [".registrar", ".field-guide", "#fence-surface"]) {
     const target = document.querySelector(selector);
     if (target) observer.observe(target);
   }
@@ -585,6 +597,41 @@ export function createCreatures(): CreatureController {
     signal: events.signal,
     passive: true,
   });
+  document.addEventListener(
+    "farm:view-change",
+    () => {
+      const previousCard = surfaceFor("card");
+      const previousBounds = previousCard ? bounds(previousCard) : null;
+      for (const creature of creatures) {
+        if (creature.mode === "held") restore(creature);
+      }
+      measure();
+      const nextCard = surfaceFor("card");
+      for (const creature of creatures) {
+        // A view change carries companions to the new paperwork, including
+        // anyone falling during the transition, without dismissing a resident.
+        const surface = surfaceFor(creature.perch);
+        if (creature.perch === "card" && nextCard && previousBounds) {
+          const [left, right] = previousBounds;
+          const position = right > left
+            ? clamp((creature.x - left) / (right - left), 0, 1)
+            : 0.7;
+          const [nextLeft, nextRight] = bounds(nextCard);
+          creature.x = nextLeft + (nextRight - nextLeft) * position;
+        }
+        if (surface) {
+          creature.mode = "walking";
+          creature.x = clamp(creature.x, ...bounds(surface));
+          creature.y = surface.y - 7 * scale;
+          creature.vx = 0;
+          creature.vy = 0;
+        }
+        paint(creature);
+      }
+      dirty();
+    },
+    { signal: events.signal },
+  );
   media.addEventListener(
     "change",
     () => {
@@ -600,30 +647,31 @@ export function createCreatures(): CreatureController {
     },
     { signal: events.signal },
   );
-  // Entrance transforms do not trigger ResizeObserver. Follow the actual fence
-  // animation, even when asset decoding delayed it beyond the first few seconds.
+  // Transforms do not trigger ResizeObserver. Follow both the fence entrance
+  // and page turns so residents stay on the moving paper throughout navigation.
+  function movesSurface(event: AnimationEvent) {
+    return event.target instanceof Element && (
+      event.target.matches(".fence-arrival") ||
+      (event.target.matches("#docs-view") && event.animationName === "guide-arrive") ||
+      (event.target.matches("#farm-view") && event.animationName === "farm-return")
+    );
+  }
   document.addEventListener(
     "animationstart",
     (event) => {
-      if (
-        event.target instanceof Element &&
-        event.target.matches(".fence-arrival")
-      ) {
-        surfaceAnimating = true;
+      if (movesSurface(event)) {
+        surfaceAnimations.add(event.animationName);
         dirty();
       }
     },
     { capture: true, signal: events.signal },
   );
-  for (const name of ["animationend", "animationcancel"])
+  for (const name of ["animationend", "animationcancel"] as const)
     document.addEventListener(
       name,
       (event) => {
-        if (
-          event.target instanceof Element &&
-          event.target.matches(".fence-arrival")
-        ) {
-          surfaceAnimating = false;
+        if (movesSurface(event)) {
+          surfaceAnimations.delete(event.animationName);
           dirty();
         }
       },

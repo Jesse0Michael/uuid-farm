@@ -3,6 +3,7 @@ import { startFarmMusic } from "./music.ts";
 import { adopt, surrender, ApiError, type Resident } from "./api.ts";
 import { createCreatures } from "./creatures.ts";
 import { createHistory } from "./history.ts";
+import { createGuide } from "./guide.ts";
 
 startFarmMusic();
 
@@ -24,6 +25,7 @@ Promise.allSettled(
 
 const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
 createCreatures();
+createGuide();
 document.documentElement.style.setProperty(
   "--sun-x",
   `${44 + Math.random() * 12}%`,

@@ -1,7 +1,17 @@
 openapi: 3.0.3
 info:
   title: UUID Farm
-  description: A shelter for surrendered UUIDs.
+  description: |
+    A public API for registering and reusing UUIDs.
+
+    Surrendering a UUID registers it as available, or makes a previously adopted
+    UUID available again. Adopting atomically selects an available UUID and marks
+    it as adopted. The API stores client-supplied identifiers; it does not generate
+    new UUIDs. Each lifecycle transition is recorded in the UUID's history.
+
+    All operations are available without authentication. UUID metadata and history
+    are public, and any caller can update a UUID's name. Identifiers are returned
+    in canonical lowercase, hyphenated form. Timestamps use RFC 3339.
   version: 2.1.0
   license:
     name: Unlicense
@@ -13,10 +23,14 @@ paths:
   /:
     get:
       operationId: getFarm
-      summary: Get shelter statistics
+      summary: Get UUID statistics
+      description: >-
+        Returns total, adopted, and available UUID counts from a consistent
+        snapshot. Counts describe the current state, not the number of lifetime
+        adoption or surrender events.
       responses:
         '200':
-          description: Shelter statistics
+          description: Current UUID counts by lifecycle state.
           content:
             application/json:
               schema:
@@ -26,10 +40,15 @@ paths:
   /uuids:
     get:
       operationId: getUUIDs
-      summary: List residents in document ID order
+      summary: List UUIDs
+      description: >-
+        Returns UUID records in ascending canonical UUID order, including both
+        available and adopted UUIDs. Pass nextCursor as cursor to retrieve the
+        next page. Pages are read independently and do not share a snapshot.
       parameters:
         - in: query
           name: limit
+          description: Maximum number of UUID records to return.
           schema:
             type: integer
             minimum: 1
@@ -37,31 +56,38 @@ paths:
             default: 25
         - in: query
           name: cursor
-          description: nextCursor from the previous page; canonical UUID document ID.
+          description: >-
+            Exclusive pagination cursor. Use nextCursor from the previous response
+            unchanged; the value must be a canonical lowercase, hyphenated UUID.
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: A bounded page of residents
+          description: A page of UUID records. An empty result has an empty items array.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Page'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
         default:
           $ref: '#/components/responses/Error'
     post:
       operationId: adoptUUID
-      summary: Adopt the first available resident in document ID order
+      summary: Adopt a UUID
+      description: >-
+        Selects the available UUID with the lowest canonical UUID value in
+        lexicographic order. Sets adoptionDate and appends an adopted history
+        event atomically. Selection is deterministic, not random. Returns 404
+        when no UUID is available. No request body is required.
       responses:
         '200':
-          $ref: '#/components/responses/Resident'
+          $ref: '#/components/responses/UUIDRecord'
         '404':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/NotFound'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
         default:
           $ref: '#/components/responses/Error'
   /uuids/{id}:
@@ -69,46 +95,65 @@ paths:
       - in: path
         name: id
         required: true
+        description: >-
+          UUID identifying the record. Accepted input is normalized to canonical
+          lowercase, hyphenated form.
         schema:
           type: string
           format: uuid
     get:
       operationId: getUUID
-      summary: Find a resident
+      summary: Get a UUID
+      description: >-
+        Returns the current metadata and lifecycle timestamps for a UUID.
+        Returns 404 if the UUID has not been registered.
       responses:
         '200':
-          $ref: '#/components/responses/Resident'
+          $ref: '#/components/responses/UUIDRecord'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
         default:
           $ref: '#/components/responses/Error'
     post:
       operationId: surrenderUUID
-      summary: Surrender a UUID, normalized to its canonical spelling
+      summary: Surrender a UUID
       description: >-
-        Admit a new UUID or welcome an adopted UUID back to the shelter. Each
-        surrender and adoption is recorded in its history. A UUID already
-        waiting at the shelter returns 409. Names and intake notes are retained.
+        Registers a new UUID as available, or makes an adopted UUID available
+        again. Sets surrenderDate, clears adoptionDate, and appends a surrendered
+        history event atomically. Existing name and tag values are preserved.
+        Returns 409 if the UUID is already available. Both initial registration
+        and subsequent surrender return 201. No request body is required.
       responses:
         '201':
-          description: Resident admitted
+          description: UUID registered or made available again.
           headers:
             Location:
+              description: Relative URL of the UUID record, using its canonical ID.
               schema:
                 type: string
+              example: /v1/uuids/123e4567-e89b-42d3-a456-426614174000
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Uuid'
         '409':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/Conflict'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
         default:
           $ref: '#/components/responses/Error'
     put:
       operationId: updateUUID
-      summary: Set or clear a resident's name
+      summary: Update UUID metadata
+      description: >-
+        Sets or clears the name of an existing UUID. Only name can be updated;
+        other JSON properties are rejected. Leading and trailing whitespace is
+        removed after length validation. An empty or whitespace-only name clears
+        the field. This operation does not change lifecycle state or append a
+        history event. Returns 404 for an unregistered UUID and 415 if Content-Type
+        is not application/json. Request bodies are limited to 4096 bytes.
       requestBody:
         required: true
         content:
@@ -117,9 +162,13 @@ paths:
               $ref: '#/components/schemas/Metadata'
       responses:
         '200':
-          $ref: '#/components/responses/Resident'
+          $ref: '#/components/responses/UUIDRecord'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         default:
           $ref: '#/components/responses/Error'
   /uuids/{id}/history:
@@ -127,19 +176,26 @@ paths:
       - in: path
         name: id
         required: true
+        description: >-
+          UUID identifying the record. Accepted input is normalized to canonical
+          lowercase, hyphenated form.
         schema:
           type: string
           format: uuid
     get:
       operationId: getUUIDHistory
-      summary: Read a resident's surrender and adoption history
+      summary: Get UUID history
       description: >-
-        Returns events newest first in lifecycle order. Existing residents include
-        their known legacy intake and adoption dates; earlier unrecorded visits
-        cannot be recovered. Reading history does not modify stored records.
+        Returns surrender and adoption events in descending sequence order.
+        Sequence IDs preserve transition order even when timestamps are equal or
+        the clock changes. For records created before event history was introduced,
+        only events supported by existing surrender and adoption timestamps are
+        returned; unrecorded transitions are not reconstructed. Reads do not modify
+        stored data. Returns 404 if the UUID has not been registered.
       parameters:
         - in: query
           name: limit
+          description: Maximum number of history events to return.
           schema:
             type: integer
             minimum: 1
@@ -147,82 +203,146 @@ paths:
             default: 25
         - in: query
           name: cursor
-          description: Opaque nextCursor from the previous page for this resident.
+          description: >-
+            Exclusive pagination cursor. Pass nextCursor from the previous response
+            for this UUID unchanged to retrieve older events.
           schema:
             type: string
             pattern: '^[0-9]{20}$'
       responses:
         '200':
-          description: A bounded page of lifecycle events
+          description: A page of lifecycle events, newest first by sequence ID.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HistoryPage'
         '400':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/InvalidRequest'
         '404':
-          $ref: '#/components/responses/Error'
+          $ref: '#/components/responses/NotFound'
         default:
           $ref: '#/components/responses/Error'
 components:
   responses:
-    Resident:
-      description: Resident record
+    UUIDRecord:
+      description: UUID record with current metadata and lifecycle timestamps.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Uuid'
-    Error:
-      description: Invalid request, missing resident, conflict, or service failure
+    InvalidRequest:
+      description: Invalid UUID, pagination parameter, or request body.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+          example:
+            code: 400
+            message: Invalid request
+    NotFound:
+      description: UUID not found, or no UUID available for adoption.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: 404
+            message: No UUID found
+    Conflict:
+      description: The UUID is already available and cannot be surrendered again.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: 409
+            message: UUID already exists
+    UnsupportedMediaType:
+      description: The request Content-Type must be application/json.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: 415
+            message: Expected application/json
+    Error:
+      description: Server error or another failure not listed for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: 500
+            message: Unexpected error
   schemas:
     Uuid:
       type: object
+      description: >-
+        Current state of a registered UUID. Lifecycle timestamps are managed by the
+        server. An available UUID has no adoptionDate in its response. Empty optional
+        fields are omitted. Recognized legacy timestamps are normalized to RFC 3339
+        in responses without changing stored data.
       required: [id]
       properties:
         id:
           type: string
           format: uuid
+          description: Canonical lowercase, hyphenated UUID.
         name:
           type: string
+          description: Publicly editable name. Omitted when unset or cleared.
         tag:
           type: string
           readOnly: true
+          description: Existing tag metadata. Preserved across transitions and not writable through this API.
         surrenderDate:
           type: string
           format: date-time
-          description: Most recent arrival at the shelter.
+          description: Timestamp of the most recent surrender. Omitted if not recorded.
         adoptionDate:
           type: string
           format: date-time
-          description: Most recent adoption; absent while waiting at the shelter.
+          description: Timestamp of the most recent adoption. Omitted while the UUID is available.
+      example:
+        id: 123e4567-e89b-42d3-a456-426614174000
+        name: build-cache-key
+        surrenderDate: '2026-11-14T12:00:00Z'
+        adoptionDate: '2026-11-15T12:00:00Z'
     HistoryEvent:
       type: object
+      description: A server-recorded surrender or adoption transition for one UUID.
       required: [id, type, date]
       properties:
         id:
           type: string
           pattern: '^[0-9]{20}$'
+          description: Increasing sequence ID scoped to one UUID, encoded as a zero-padded 20-digit decimal string.
         type:
           type: string
           enum: [surrendered, adopted]
+          description: Lifecycle transition recorded by this event.
         date:
           type: string
           format: date-time
+          description: Timestamp of the transition.
+      example:
+        id: '00000000000000000002'
+        type: adopted
+        date: '2026-11-15T12:00:00Z'
     HistoryPage:
       type: object
       required: [items]
       properties:
         items:
           type: array
+          description: History events in descending sequence order. Empty when no events match.
           items:
             $ref: '#/components/schemas/HistoryEvent'
         nextCursor:
           type: string
           pattern: '^[0-9]{20}$'
+          description: Cursor for the next page of older events. Omitted when there are no further results.
     Metadata:
       type: object
       additionalProperties: false
@@ -231,30 +351,45 @@ components:
         name:
           type: string
           maxLength: 80
+          description: >-
+            Name to store. Length is measured in Unicode code points before
+            trimming leading and trailing whitespace. Use an empty string to clear.
+      example:
+        name: build-cache-key
     Page:
       type: object
       required: [items]
       properties:
         items:
           type: array
+          description: UUID records in ascending canonical UUID order. Empty when no records match.
           items:
             $ref: '#/components/schemas/Uuid'
         nextCursor:
           type: string
           format: uuid
+          description: Cursor for the next page. Omitted when there are no further results.
     Farm:
       type: object
+      description: Current UUID counts. uuids equals adopted plus surrendered.
       required: [uuids, adopted, surrendered]
       properties:
         uuids:
           type: integer
           format: int64
+          description: Total number of registered UUIDs.
         adopted:
           type: integer
           format: int64
+          description: Number of UUIDs currently marked as adopted.
         surrendered:
           type: integer
           format: int64
+          description: Number of UUIDs currently available for adoption.
+      example:
+        uuids: 10
+        adopted: 2
+        surrendered: 8
     ApiError:
       type: object
       required: [code, message]
@@ -262,5 +397,7 @@ components:
         code:
           type: integer
           format: int32
+          description: HTTP status code of the response.
         message:
           type: string
+          description: Human-readable error description.

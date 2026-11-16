@@ -213,6 +213,14 @@ connect to production Firestore.
 regenerated artifacts. The Go handlers are hand-maintained. The former generated
 Node client and npm publishing pipeline have been retired.
 
+The farm's **Documentation** button opens the API reference at `/#docs`, keeping the
+scene, sound preference, and reception forms in place. Vite serves the generated
+reference at `/reference/index.html` and the source contract at
+`/reference/openapi.yaml` in development and includes both in `ui/dist` for the
+Go server and Docker image. Run `make gen-docs` after changing the spec, Redocly
+options, or the farm theme in `docs/template.hbs`. The generated page embeds its
+ReDoc runtime, uses system fonts, and disables ReDoc telemetry.
+
 The API still lives at `/v1` to preserve existing action URLs. This is a breaking
 contract revision (introduced in spec version 2.0.0; currently 2.1.0):
 

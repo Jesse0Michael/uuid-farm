@@ -10,7 +10,7 @@
     "start": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "generate": "openapi-typescript ../api/openapi.yaml -o src/api-types.ts",
-    "docs": "redocly build-docs ../api/openapi.yaml --output ../docs/index.html",
+    "docs": "redocly build-docs ../api/openapi.yaml --config ../redocly.yaml --template ../docs/template.hbs --inlineBundle --output ../docs/index.html",
     "lint:api": "redocly lint ../api/openapi.yaml --config ../redocly.yaml",
     "test": "node --experimental-strip-types --test src/*.test.ts",
     "test:e2e": "playwright test"

@@ -1,5 +1,10 @@
 extends:
   - recommended
+telemetry: off
+openapi:
+  hideDownloadButtons: true
+  sortRequiredPropsFirst: true
+  jsonSamplesExpandLevel: 2
 rules:
   # Statistics take no user input and legitimately have no 4xx response.
   operation-4xx-response: off

@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get shelter statistics */
+        /**
+         * Get UUID statistics
+         * @description Returns total, adopted, and available UUID counts from a consistent snapshot. Counts describe the current state, not the number of lifetime adoption or surrender events.
+         */
         get: operations["getFarm"];
         put?: never;
         post?: never;
@@ -28,10 +31,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List residents in document ID order */
+        /**
+         * List UUIDs
+         * @description Returns UUID records in ascending canonical UUID order, including both available and adopted UUIDs. Pass nextCursor as cursor to retrieve the next page. Pages are read independently and do not share a snapshot.
+         */
         get: operations["getUUIDs"];
         put?: never;
-        /** Adopt the first available resident in document ID order */
+        /**
+         * Adopt a UUID
+         * @description Selects the available UUID with the lowest canonical UUID value in lexicographic order. Sets adoptionDate and appends an adopted history event atomically. Selection is deterministic, not random. Returns 404 when no UUID is available. No request body is required.
+         */
         post: operations["adoptUUID"];
         delete?: never;
         options?: never;
@@ -44,17 +53,24 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
         };
-        /** Find a resident */
+        /**
+         * Get a UUID
+         * @description Returns the current metadata and lifecycle timestamps for a UUID. Returns 404 if the UUID has not been registered.
+         */
         get: operations["getUUID"];
-        /** Set or clear a resident's name */
+        /**
+         * Update UUID metadata
+         * @description Sets or clears the name of an existing UUID. Only name can be updated; other JSON properties are rejected. Leading and trailing whitespace is removed after length validation. An empty or whitespace-only name clears the field. This operation does not change lifecycle state or append a history event. Returns 404 for an unregistered UUID and 415 if Content-Type is not application/json. Request bodies are limited to 4096 bytes.
+         */
         put: operations["updateUUID"];
         /**
-         * Surrender a UUID, normalized to its canonical spelling
-         * @description Admit a new UUID or welcome an adopted UUID back to the shelter. Each surrender and adoption is recorded in its history. A UUID already waiting at the shelter returns 409. Names and intake notes are retained.
+         * Surrender a UUID
+         * @description Registers a new UUID as available, or makes an adopted UUID available again. Sets surrenderDate, clears adoptionDate, and appends a surrendered history event atomically. Existing name and tag values are preserved. Returns 409 if the UUID is already available. Both initial registration and subsequent surrender return 201. No request body is required.
          */
         post: operations["surrenderUUID"];
         delete?: never;
@@ -68,13 +84,14 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
         };
         /**
-         * Read a resident's surrender and adoption history
-         * @description Returns events newest first in lifecycle order. Existing residents include their known legacy intake and adoption dates; earlier unrecorded visits cannot be recovered. Reading history does not modify stored records.
+         * Get UUID history
+         * @description Returns surrender and adoption events in descending sequence order. Sequence IDs preserve transition order even when timestamps are equal or the clock changes. For records created before event history was introduced, only events supported by existing surrender and adoption timestamps are returned; unrecorded transitions are not reconstructed. Reads do not modify stored data. Returns 404 if the UUID has not been registered.
          */
         get: operations["getUUIDHistory"];
         put?: never;
@@ -89,58 +106,120 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Current state of a registered UUID. Lifecycle timestamps are managed by the server. An available UUID has no adoptionDate in its response. Empty optional fields are omitted. Recognized legacy timestamps are normalized to RFC 3339 in responses without changing stored data.
+         * @example {
+         *       "id": "123e4567-e89b-42d3-a456-426614174000",
+         *       "name": "build-cache-key",
+         *       "surrenderDate": "2026-11-14T12:00:00Z",
+         *       "adoptionDate": "2026-11-15T12:00:00Z"
+         *     }
+         */
         Uuid: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Canonical lowercase, hyphenated UUID.
+             */
             id: string;
+            /** @description Publicly editable name. Omitted when unset or cleared. */
             name?: string;
+            /** @description Existing tag metadata. Preserved across transitions and not writable through this API. */
             readonly tag?: string;
             /**
              * Format: date-time
-             * @description Most recent arrival at the shelter.
+             * @description Timestamp of the most recent surrender. Omitted if not recorded.
              */
             surrenderDate?: string;
             /**
              * Format: date-time
-             * @description Most recent adoption; absent while waiting at the shelter.
+             * @description Timestamp of the most recent adoption. Omitted while the UUID is available.
              */
             adoptionDate?: string;
         };
+        /**
+         * @description A server-recorded surrender or adoption transition for one UUID.
+         * @example {
+         *       "id": "00000000000000000002",
+         *       "type": "adopted",
+         *       "date": "2026-11-15T12:00:00Z"
+         *     }
+         */
         HistoryEvent: {
+            /** @description Increasing sequence ID scoped to one UUID, encoded as a zero-padded 20-digit decimal string. */
             id: string;
-            /** @enum {string} */
+            /**
+             * @description Lifecycle transition recorded by this event.
+             * @enum {string}
+             */
             type: "surrendered" | "adopted";
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Timestamp of the transition.
+             */
             date: string;
         };
         HistoryPage: {
+            /** @description History events in descending sequence order. Empty when no events match. */
             items: components["schemas"]["HistoryEvent"][];
+            /** @description Cursor for the next page of older events. Omitted when there are no further results. */
             nextCursor?: string;
         };
+        /**
+         * @example {
+         *       "name": "build-cache-key"
+         *     }
+         */
         Metadata: {
+            /** @description Name to store. Length is measured in Unicode code points before trimming leading and trailing whitespace. Use an empty string to clear. */
             name: string;
         };
         Page: {
+            /** @description UUID records in ascending canonical UUID order. Empty when no records match. */
             items: components["schemas"]["Uuid"][];
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Cursor for the next page. Omitted when there are no further results.
+             */
             nextCursor?: string;
         };
+        /**
+         * @description Current UUID counts. uuids equals adopted plus surrendered.
+         * @example {
+         *       "uuids": 10,
+         *       "adopted": 2,
+         *       "surrendered": 8
+         *     }
+         */
         Farm: {
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Total number of registered UUIDs.
+             */
             uuids: number;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Number of UUIDs currently marked as adopted.
+             */
             adopted: number;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Number of UUIDs currently available for adoption.
+             */
             surrendered: number;
         };
         ApiError: {
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description HTTP status code of the response.
+             */
             code: number;
+            /** @description Human-readable error description. */
             message: string;
         };
     };
     responses: {
-        /** @description Resident record */
-        Resident: {
+        /** @description UUID record with current metadata and lifecycle timestamps. */
+        UUIDRecord: {
             headers: {
                 [name: string]: unknown;
             };
@@ -148,12 +227,78 @@ export interface components {
                 "application/json": components["schemas"]["Uuid"];
             };
         };
-        /** @description Invalid request, missing resident, conflict, or service failure */
+        /** @description Invalid UUID, pagination parameter, or request body. */
+        InvalidRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": 400,
+                 *       "message": "Invalid request"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description UUID not found, or no UUID available for adoption. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": 404,
+                 *       "message": "No UUID found"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description The UUID is already available and cannot be surrendered again. */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": 409,
+                 *       "message": "UUID already exists"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description The request Content-Type must be application/json. */
+        UnsupportedMediaType: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                /**
+                 * @example {
+                 *       "code": 415,
+                 *       "message": "Expected application/json"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ApiError"];
+            };
+        };
+        /** @description Server error or another failure not listed for this operation. */
         Error: {
             headers: {
                 [name: string]: unknown;
             };
             content: {
+                /**
+                 * @example {
+                 *       "code": 500,
+                 *       "message": "Unexpected error"
+                 *     }
+                 */
                 "application/json": components["schemas"]["ApiError"];
             };
         };
@@ -174,7 +319,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Shelter statistics */
+            /** @description Current UUID counts by lifecycle state. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -189,8 +334,9 @@ export interface operations {
     getUUIDs: {
         parameters: {
             query?: {
+                /** @description Maximum number of UUID records to return. */
                 limit?: number;
-                /** @description nextCursor from the previous page; canonical UUID document ID. */
+                /** @description Exclusive pagination cursor. Use nextCursor from the previous response unchanged; the value must be a canonical lowercase, hyphenated UUID. */
                 cursor?: string;
             };
             header?: never;
@@ -199,7 +345,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A bounded page of residents */
+            /** @description A page of UUID records. An empty result has an empty items array. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -208,7 +354,7 @@ export interface operations {
                     "application/json": components["schemas"]["Page"];
                 };
             };
-            400: components["responses"]["Error"];
+            400: components["responses"]["InvalidRequest"];
             default: components["responses"]["Error"];
         };
     };
@@ -221,9 +367,9 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Resident"];
-            400: components["responses"]["Error"];
-            404: components["responses"]["Error"];
+            200: components["responses"]["UUIDRecord"];
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["NotFound"];
             default: components["responses"]["Error"];
         };
     };
@@ -232,14 +378,16 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Resident"];
-            400: components["responses"]["Error"];
+            200: components["responses"]["UUIDRecord"];
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["NotFound"];
             default: components["responses"]["Error"];
         };
     };
@@ -248,6 +396,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
@@ -258,8 +407,10 @@ export interface operations {
             };
         };
         responses: {
-            200: components["responses"]["Resident"];
-            400: components["responses"]["Error"];
+            200: components["responses"]["UUIDRecord"];
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["NotFound"];
+            415: components["responses"]["UnsupportedMediaType"];
             default: components["responses"]["Error"];
         };
     };
@@ -268,15 +419,20 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Resident admitted */
+            /** @description UUID registered or made available again. */
             201: {
                 headers: {
+                    /**
+                     * @description Relative URL of the UUID record, using its canonical ID.
+                     * @example /v1/uuids/123e4567-e89b-42d3-a456-426614174000
+                     */
                     Location?: string;
                     [name: string]: unknown;
                 };
@@ -284,27 +440,29 @@ export interface operations {
                     "application/json": components["schemas"]["Uuid"];
                 };
             };
-            400: components["responses"]["Error"];
-            409: components["responses"]["Error"];
+            400: components["responses"]["InvalidRequest"];
+            409: components["responses"]["Conflict"];
             default: components["responses"]["Error"];
         };
     };
     getUUIDHistory: {
         parameters: {
             query?: {
+                /** @description Maximum number of history events to return. */
                 limit?: number;
-                /** @description Opaque nextCursor from the previous page for this resident. */
+                /** @description Exclusive pagination cursor. Pass nextCursor from the previous response for this UUID unchanged to retrieve older events. */
                 cursor?: string;
             };
             header?: never;
             path: {
+                /** @description UUID identifying the record. Accepted input is normalized to canonical lowercase, hyphenated form. */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description A bounded page of lifecycle events */
+            /** @description A page of lifecycle events, newest first by sequence ID. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -313,8 +471,8 @@ export interface operations {
                     "application/json": components["schemas"]["HistoryPage"];
                 };
             };
-            400: components["responses"]["Error"];
-            404: components["responses"]["Error"];
+            400: components["responses"]["InvalidRequest"];
+            404: components["responses"]["NotFound"];
             default: components["responses"]["Error"];
         };
     };

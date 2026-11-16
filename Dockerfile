@@ -3,6 +3,8 @@ WORKDIR /src/ui
 COPY ui/package*.json ./
 RUN npm ci
 COPY ui/ ./
+COPY docs/index.html /src/docs/index.html
+COPY api/openapi.yaml /src/api/openapi.yaml
 RUN npm test && npm run build
 
 FROM golang:1.27-alpine AS build

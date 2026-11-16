@@ -64,6 +64,13 @@
       >
       <div class="header-right">
         <span class="open-sign"><i></i> The farm is open</span>
+        <a id="docs-tab" class="docs-toggle" href="#docs" aria-label="Documentation" aria-controls="docs-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14" />
+            <path d="M6 9h3m-3 4h3m6-4h3m-3 4h3" />
+          </svg>
+          <span>Documentation</span>
+        </a>
         <button
           id="music-toggle"
           class="music-toggle"
@@ -84,7 +91,7 @@
       </div>
     </header>
 
-    <main class="farm-main">
+    <main id="farm-view" class="farm-main">
       <section class="welcome" aria-labelledby="welcome-title">
         <div class="eyebrow">
           <span></span> A SANCTUARY FOR SPARE IDENTIFIERS
@@ -251,6 +258,18 @@
           <span aria-hidden="true">♡</span> Every identifier deserves a second
           chance.
         </div>
+      </section>
+    </main>
+
+    <main id="docs-view" class="docs-main" aria-label="Documentation" tabindex="-1" hidden>
+      <a href="#farm" class="back-to-farm"><span aria-hidden="true">←</span> Back to the farm</a>
+      <section class="field-guide" aria-label="OpenAPI reference">
+        <div id="reference-loading" class="reference-loading" role="status">Loading documentation…</div>
+        <div id="reference-error" class="reference-error" role="status" hidden>
+          <p>The documentation couldn’t be loaded. Please try again.</p>
+          <button id="reference-retry" type="button" class="copy-button">Retry <span aria-hidden="true">↻</span></button>
+        </div>
+        <iframe id="api-reference" title="UUID Farm API reference" hidden></iframe>
       </section>
     </main>
 

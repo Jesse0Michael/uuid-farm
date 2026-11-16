@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="UUID Farm API documentation." />
+    <title>{{title}} · Documentation</title>
+    {{{redocHead}}}
+    <style>
+      /* Redoc 3 exposes CSS custom properties for its standalone reference. */
+      html:root {
+        color-scheme: light;
+        --font-family-base: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        --font-family-monospaced: "SFMono-Regular", Consolas, monospace;
+        --heading-font-family: Georgia, "Times New Roman", serif;
+        --heading-font-weight: 400;
+        --heading-text-color: #293e32;
+        --text-color-primary: #293e32;
+        --text-color-secondary: #526b5d;
+        --text-color-description: #64735e;
+        --bg-color: #fbf8ed;
+        --bg-color-raised: #fffdf5;
+        --bg-color-tonal: #f0efdf;
+        --bg-color-hover: #e8ebdb;
+        --layer-color: #f0efdf;
+        --border-color-primary: #d5d9c5;
+        --border-color-secondary: #e5e5d5;
+        --color-primary-base: #496847;
+        --color-primary-hover: #344e36;
+        --color-primary-active: #293e32;
+        --color-primary-bg: #e7ecd9;
+        --color-primary-border: #a9b99c;
+        --link-color-primary: #496847;
+        --link-color-primary-hover: #344e36;
+        --link-color-visited: #677451;
+        --sidebar-bg-color: #f0efdf;
+        --tree-content-color-default: #526b5d;
+        --tree-content-color-hover: #293e32;
+        --tree-bg-color-active: #e1e7d2;
+        --tree-bg-color-hover: #e8ebdb;
+        --search-trigger-color: #64735e;
+        --menu-content-color: #526b5d;
+        --menu-item-bg-color-active: #e1e7d2;
+        --menu-item-bg-color-hover: #e8ebdb;
+        --menu-item-text-color-active: #293e32;
+        --button-border-color-focused: #997329;
+        --button-content-color-primary: #496847;
+        --button-content-color-primary-hover: #344e36;
+        --button-bg-color-secondary: #e8ebdb;
+        --button-bg-color-secondary-hover: #dfe5d0;
+        --input-bg-color: #fffdf5;
+        --input-border-color: #d5d9c5;
+        --input-border-color-focused: #997329;
+        --inline-code-bg-color: #e9ecdd;
+        --inline-code-text-color: #344e36;
+        --code-block-bg-color: #edf0e3;
+        --code-block-text-color: #293e32;
+        --panel-samples-bg-color: #f0efdf;
+        --panel-samples-heading-bg-color: #e8ebdb;
+        --panel-samples-body-bg-color: #edf0e3;
+        --panel-samples-code-block-bg-color: #edf0e3;
+        --tabs-border-color: #d5d9c5;
+      }
+      /* Preserve the reader's built-in night mode with a darker farm palette. */
+      html:root:has(.redoc.dark), .redoc.dark {
+        color-scheme: dark;
+        --heading-text-color: #f0efdf;
+        --text-color-primary: #f0efdf;
+        --text-color-secondary: #c2cdb7;
+        --text-color-description: #a8b69d;
+        --bg-color: #24362b;
+        --bg-color-raised: #2d4233;
+        --bg-color-tonal: #304535;
+        --bg-color-hover: #3a503c;
+        --layer-color: #2d4233;
+        --border-color-primary: #52694e;
+        --border-color-secondary: #3d543e;
+        --color-primary-base: #b9cc99;
+        --color-primary-hover: #d1dfb7;
+        --color-primary-active: #dce8c7;
+        --color-primary-bg: #3a503c;
+        --link-color-primary: #c3d5a5;
+        --link-color-primary-hover: #dce8c7;
+        --link-color-visited: #bbcca2;
+        --sidebar-bg-color: #1f3026;
+        --tree-content-color-default: #c2cdb7;
+        --tree-content-color-hover: #f0efdf;
+        --tree-bg-color-active: #3a503c;
+        --tree-bg-color-hover: #304535;
+        --search-trigger-color: #a8b69d;
+        --menu-content-color: #c2cdb7;
+        --menu-item-bg-color-active: #3a503c;
+        --menu-item-bg-color-hover: #304535;
+        --menu-item-text-color-active: #f0efdf;
+        --button-content-color-primary: #c3d5a5;
+        --button-content-color-primary-hover: #dce8c7;
+        --button-bg-color-secondary: #304535;
+        --button-bg-color-secondary-hover: #3a503c;
+        --input-bg-color: #2d4233;
+        --input-border-color: #52694e;
+        --inline-code-bg-color: #304535;
+        --inline-code-text-color: #d1dfb7;
+        --code-block-bg-color: #233329;
+        --code-block-text-color: #c2cdb7;
+        --panel-samples-bg-color: #2d4233;
+        --panel-samples-heading-bg-color: #304535;
+        --panel-samples-body-bg-color: #233329;
+        --panel-samples-code-block-bg-color: #233329;
+        --tabs-border-color: #52694e;
+      }
+      body { margin: 0; padding: 0; background: #fbf8ed; }
+      :focus-visible { outline: 3px solid #997329; outline-offset: 3px; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    {{{redocHTML}}}
+    <script>
+      // Redoc 3's search trigger is a clickable div. Give it native button
+      // semantics until the renderer provides its own keyboard interaction.
+      function makeSearchAccessible() {
+        for (const trigger of document.querySelectorAll('[data-testid="search-trigger"]:not([role])')) {
+          trigger.setAttribute("role", "button");
+          trigger.setAttribute("tabindex", "0");
+          trigger.setAttribute("aria-label", "Search API documentation");
+          trigger.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              trigger.click();
+            }
+          });
+        }
+      }
+      new MutationObserver(makeSearchAccessible).observe(document.getElementById("redoc"), {
+        childList: true,
+        subtree: true,
+      });
+      makeSearchAccessible();
+    </script>
+  </body>
+</html>
