@@ -9,13 +9,20 @@ mock_provider "google" {
 }
 
 variables {
-  project_id      = "demo-uuid-farm"
-  region          = "us-central1"
-  billing_account = ""
+  analytics_account_id = "123456789"
+  analytics_site_url   = "https://farm.example.com"
+  project_id           = "demo-uuid-farm"
+  region               = "us-central1"
+  billing_account      = ""
 }
 
 run "existing_database_is_unmanaged_and_access_is_scoped" {
   command = plan
+
+  assert {
+    condition     = contains(keys(google_project_service.apis), "analyticsadmin.googleapis.com")
+    error_message = "Enable the Analytics Admin API for the existing deployer."
+  }
 
   assert {
     condition     = length(google_firestore_database.default) == 0

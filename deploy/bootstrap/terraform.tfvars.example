@@ -21,3 +21,7 @@ create_firestore_database = false
 # github_repository_id = "204247808"
 # github_owner_id      = "661374"
 # github_branch        = "master"
+
+# GA Admin > Account details, and the public origin visitors use for UUID Farm.
+analytics_account_id = "123456789"
+analytics_site_url   = "https://uuid-farm-123456789012.us-central1.run.app"

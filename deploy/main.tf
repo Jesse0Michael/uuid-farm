@@ -35,6 +35,8 @@ resource "google_cloud_run_v2_service" "farm" {
       dynamic "env" {
         for_each = {
           GOOGLE_CLOUD_PROJECT = var.project_id
+          GA_MEASUREMENT_ID    = googleanalytics_data_stream.web.measurement_id
+          ANALYTICS_HOSTNAME   = trimprefix(local.analytics_site_url, "https://")
           UI_DIR               = "/ui/dist"
           LOG_FORMAT           = "JSON"
         }
@@ -68,6 +70,13 @@ resource "google_cloud_run_v2_service" "farm" {
       }
     }
   }
+
+  # Configure collection and reporting before the first instrumented revision.
+  depends_on = [
+    terraform_data.enhanced_measurement,
+    googleanalytics_key_event.completed,
+    googleanalytics_custom_dimension.farm,
+  ]
 
   traffic {
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"

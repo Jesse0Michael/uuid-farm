@@ -75,6 +75,8 @@ jobs:
       TF_IN_AUTOMATION: "true"
       TF_VAR_project_id: ${{ vars.GCP_PROJECT_ID }}
       TF_VAR_region: ${{ vars.GCP_REGION }}
+      TF_VAR_analytics_account_id: ${{ vars.GA_ACCOUNT_ID }}
+      TF_VAR_analytics_site_url: ${{ vars.GA_SITE_URL }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -84,9 +86,9 @@ jobs:
       - name: Validate deployment configuration
         shell: bash
         run: |
-          for name in GCP_PROJECT_ID GCP_REGION TF_STATE_BUCKET WIF_PROVIDER DEPLOYER_SERVICE_ACCOUNT; do
+          for name in GCP_PROJECT_ID GCP_REGION TF_STATE_BUCKET WIF_PROVIDER DEPLOYER_SERVICE_ACCOUNT TF_VAR_analytics_account_id TF_VAR_analytics_site_url; do
             if [[ -z "${!name}" ]]; then
-              echo "::error::Set the repository variable $name from the Terraform bootstrap outputs."
+              echo "::error::Missing $name. Set the repository variables from the Terraform bootstrap's github_variables output."
               exit 1
             fi
           done
@@ -135,11 +137,14 @@ jobs:
           terraform_wrapper: false
 
       - name: Refresh credentials for Terraform
+        id: plan_auth
         uses: google-github-actions/auth@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/analytics.edit
 
       - name: Initialize and validate Terraform
         working-directory: deploy
@@ -148,6 +153,8 @@ jobs:
           terraform validate
 
       - name: Plan service configuration and image together
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.plan_auth.outputs.access_token }}
         working-directory: deploy
         run: terraform plan -input=false -lock-timeout=5m -out=tfplan
 
@@ -171,13 +178,18 @@ jobs:
             }
 
       - name: Refresh credentials for the rollout
+        id: apply_auth
         uses: google-github-actions/auth@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/analytics.edit
 
       - name: Apply the saved plan
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.apply_auth.outputs.access_token }}
         working-directory: deploy
         run: terraform apply -input=false -lock-timeout=5m tfplan
 
@@ -193,7 +205,7 @@ jobs:
             printf '### UUID Farm deployed\n\n'
             printf 'Commit: `%s`\n\n' "$DEPLOY_SHA"
             printf 'Image: `%s`\n\n' "$TF_VAR_image"
-            printf '[Open UUID Farm](%s)\n' "$service_url"
+            printf '[Open UUID Farm](%s)\n' "$TF_VAR_analytics_site_url"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Remove local plan

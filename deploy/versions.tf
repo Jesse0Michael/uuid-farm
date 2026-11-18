@@ -7,6 +7,10 @@ terraform {
   }
 
   required_providers {
+    googleanalytics = {
+      source  = "breymander/google-analytics"
+      version = "= 0.1.0"
+    }
     google = {
       source  = "hashicorp/google"
       version = "~> 7.0"
@@ -18,3 +22,5 @@ provider "google" {
   project = var.project_id
   region  = var.region
 }
+
+provider "googleanalytics" {}

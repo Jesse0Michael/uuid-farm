@@ -16,7 +16,7 @@ no database move or recreation is needed. See
 
 `deploy/bootstrap/` is applied once by a project administrator:
 
-- Required Google APIs, a private versioned Terraform state bucket, and an Artifact
+- Required Google APIs (including the Analytics Admin API), a private versioned Terraform state bucket, and an Artifact
   Registry Docker repository named `uuid-farm`.
 - A `uuid-farm-runtime` service account with Firestore data access and a separate
   `uuid-farm-deployer` account for GitHub Actions.
@@ -29,8 +29,11 @@ no database move or recreation is needed. See
   account. Bootstrap does not link a billing account or implement a spending cutoff.
 
 `deploy/` manages the public Cloud Run service named `uuid-farm`, including the exact
-container image digest. It uses a GCS backend with the prefix `uuid-farm/service`.
-The runtime receives `GOOGLE_CLOUD_PROJECT`, `UI_DIR`, and JSON logging configuration.
+container image digest. The same state manages a dedicated UUID Farm GA4 property
+in the chosen Analytics account, its web stream, event dimensions, and key events.
+It uses a GCS backend with the prefix `uuid-farm/service`.
+The runtime receives `GOOGLE_CLOUD_PROJECT`, `UI_DIR`, JSON logging configuration,
+and the public `GA_MEASUREMENT_ID` and `ANALYTICS_HOSTNAME` settings.
 Cloud Run provides the port and credentials. No emulator is configured in production.
 
 The service scales to zero, uses request-based CPU billing, and sets a maximum of one
@@ -98,7 +101,7 @@ gcloud auth login
 gcloud auth application-default login
 
 cp deploy/bootstrap/terraform.tfvars.example deploy/bootstrap/terraform.tfvars
-# Set project_id to the Firebase project ID and choose the Cloud Run region.
+# Set project_id, region, analytics_account_id, and analytics_site_url.
 
 terraform -chdir=deploy/bootstrap init
 terraform -chdir=deploy/bootstrap plan -out=bootstrap.tfplan
@@ -126,6 +129,35 @@ and choose `firestore_location` before applying bootstrap. The database location
 one-time choice; use the location you actually want to retain. Do not enable this option
 against an already existing database. The new database starts empty; there is no automatic seed.
 
+## Enable Analytics on an existing deployment
+
+1. In the existing `deploy/bootstrap/terraform.tfvars`, set `analytics_account_id`
+   to the numeric ID under **Google Analytics → Admin → Account details**. Set
+   `analytics_site_url` to the HTTPS origin visitors use, such as the URL in the
+   last deployment summary. For a first deployment the service also supports
+   `https://uuid-farm-PROJECT_NUMBER.REGION.run.app`. [Cloud Run service URLs](https://docs.cloud.google.com/run/docs/triggering/https-request#service_url)
+2. Run the bootstrap init, plan, and apply commands above using the existing
+   bootstrap state. This enables `analyticsadmin.googleapis.com` and updates the
+   `github_variables` output. Run the two new commands for `GA_ACCOUNT_ID` and
+   `GA_SITE_URL`. First-time operators should set all the variables listed below.
+3. In **Google Analytics → Admin → Account access management**, grant **Editor**
+   on that account to the email from `terraform -chdir=deploy/bootstrap output
+   -raw deployer_service_account`. Account-level access lets the deployer create a
+   new property. GitHub obtains a short-lived token with the `analytics.edit`
+   and `cloud-platform` scopes for Terraform. The runtime only needs the public
+   stream configuration.
+4. Run the normal checked deployment. Open the configured site and check
+   **Reports → Realtime** in the new **UUID Farm** property for a page view and
+   `screen_opened`. Switching desks exercises screen tracking without changing
+   a resident. The [event guide](../README.md#browser-analytics) describes the
+   adoption and surrender funnels.
+
+Reports use the America/Phoenix time zone and a 14-month event retention window.
+Terraform disables enhanced measurement through the Admin API before rolling out
+the instrumented service. The GA provider cannot detect a later manual change to
+that setting. If someone re-enables it in the console, disable it there or include
+`-replace=terraform_data.enhanced_measurement` in the next authorized service plan.
+
 ## Prepare existing UUID data
 
 Before the first deployment over original UUID Farm records, follow the README's
@@ -149,8 +181,10 @@ Set these under **Settings → Secrets and variables → Actions → Variables**
 | `TF_STATE_BUCKET` | Bootstrap output `state_bucket`. |
 | `WIF_PROVIDER` | Bootstrap output `workload_identity_provider`; the full `projects/…/locations/global/workloadIdentityPools/…/providers/…` name. |
 | `DEPLOYER_SERVICE_ACCOUNT` | Bootstrap output `deployer_service_account`, normally `uuid-farm-deployer@PROJECT_ID.iam.gserviceaccount.com`. |
+| `GA_ACCOUNT_ID` | Numeric Analytics account ID from bootstrap's `analytics_account_id`. |
+| `GA_SITE_URL` | Public HTTPS origin from bootstrap's `analytics_site_url`. The production browser checks its hostname before loading the tag. |
 
-The bootstrap prints commands with all five values and the repository already
+The bootstrap prints commands with all seven values and the repository already
 selected. With `gh` authenticated, review and run that output:
 
 ```sh
@@ -164,7 +198,7 @@ reads and its OIDC token to obtain short-lived Google credentials. See the
 
 ## First deployment and subsequent releases
 
-Complete bootstrap and the existing-data audit before the first deployment. With the five
+Complete bootstrap, the Analytics access setup, and the existing-data audit before the first deployment. With the seven
 variables configured, successful **Checks** for pushes to `master` automatically trigger
 **Deploy Cloud Run**. You can also run that workflow manually on `master` after its
 **Checks** workflow has passed; a manual run requires successful checks for the selected commit.
@@ -175,7 +209,7 @@ The deployment workflow:
 2. Builds the existing Dockerfile and pushes the image to
    `REGION-docker.pkg.dev/PROJECT_ID/uuid-farm/app`.
 3. Passes that image's immutable `sha256` digest to Terraform.
-4. Initializes the GCS backend, creates a plan, and applies that saved plan to Cloud Run.
+4. Initializes the GCS backend, creates a plan, and applies that saved plan for Analytics and Cloud Run.
 5. Records the service URL in the workflow summary and requests `/health` without modifying data.
 
 The first run creates the service; later runs update its revision. One concurrency group

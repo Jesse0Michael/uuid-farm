@@ -21,6 +21,8 @@ output "image_repository" {
 output "github_variables" {
   description = "Review these commands, then run with an authenticated gh CLI to configure this repository."
   value       = <<-EOT
+    gh variable set GA_ACCOUNT_ID --repo '${var.github_repo}' --body '${var.analytics_account_id}'
+    gh variable set GA_SITE_URL --repo '${var.github_repo}' --body '${var.analytics_site_url}'
     gh variable set GCP_PROJECT_ID --repo '${var.github_repo}' --body '${var.project_id}'
     gh variable set GCP_REGION --repo '${var.github_repo}' --body '${var.region}'
     gh variable set TF_STATE_BUCKET --repo '${var.github_repo}' --body '${google_storage_bucket.state.name}'

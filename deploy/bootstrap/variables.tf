@@ -101,3 +101,23 @@ variable "firestore_location" {
     error_message = "Use a Firestore region or multi-region location."
   }
 }
+
+variable "analytics_account_id" {
+  description = "Numeric Google Analytics account ID under which to create the UUID Farm GA4 property."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.analytics_account_id))
+    error_message = "Enter the numeric account ID from Google Analytics Account details."
+  }
+}
+
+variable "analytics_site_url" {
+  description = "Public HTTPS origin used by visitors. A trailing slash is optional."
+  type        = string
+
+  validation {
+    condition     = can(regex("^https://([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.])+[a-z]([a-z0-9-]{0,61}[a-z0-9])?/?$", var.analytics_site_url))
+    error_message = "Use the public HTTPS origin with a lowercase hostname, such as https://farm.example.com."
+  }
+}

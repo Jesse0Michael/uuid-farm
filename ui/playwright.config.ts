@@ -17,6 +17,10 @@ export default defineConfig({
   },
   webServer: {
     command: "npm start -- --port 5191 --strictPort",
+    env: {
+      VITE_ANALYTICS_DEBUG: "true",
+      VITE_GA_MEASUREMENT_ID: "G-TEST000001",
+    },
     url: "http://127.0.0.1:5191",
     reuseExistingServer: !process.env.CI,
   },

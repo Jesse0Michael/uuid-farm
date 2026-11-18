@@ -1,5 +1,6 @@
 locals {
   apis = toset(concat([
+    "analyticsadmin.googleapis.com",
     "artifactregistry.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "firestore.googleapis.com",

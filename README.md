@@ -208,6 +208,43 @@ run. Tests exercise repeat surrender/adoption, lifecycle history, duplicate surr
 legacy timestamps, metadata validation, and canceled requests. They never intentionally
 connect to production Firestore.
 
+## Browser analytics
+
+UUID Farm uses a dedicated Google Analytics 4 web stream to measure how often
+visitors use the adoption and surrender desks and where requests fail. The
+production build loads Google's tag only on the hostname configured through
+`ANALYTICS_HOSTNAME`, using the stream's public `GA_MEASUREMENT_ID`. Both
+settings come from Terraform at runtime. Local development defaults to analytics off.
+
+| Event | When it fires | Reporting fields |
+| --- | --- | --- |
+| `screen_opened` | A visitor enters a desk or the API guide, including the first screen | `screen_name` (adopt, surrender, documentation) |
+| `service_requested` | A visitor submits a desk form | `service` (adopt, surrender) |
+| `adoption_completed`, `surrender_completed` | The API returns a successful result to the browser | Each completion counts as one GA4 key event |
+| `service_failed` | The form submission fails | `service` and `failure_reason` (invalid_uuid, already_available, none_available, unavailable) |
+| `uuid_copied` | The browser writes an adopted UUID to the clipboard | Event count only |
+
+In a GA4 funnel exploration, start with `service_requested` filtered to
+`service = adopt` and follow it with `adoption_completed`. Use the corresponding
+surrender events for the other desk. Break down `service_failed` by failure reason
+to distinguish an empty farm from an unavailable service. Browser counts can miss
+blocked tags or interrupted visits and exclude direct API and seed traffic.
+Firestore history records the actual transitions.
+
+Events omit UUIDs, resident names, form values, and raw errors. The tag receives
+the landing page origin and referring origin, with URL paths, queries, and fragments
+removed. Automatic form and link tracking, Google Signals, and ad personalization
+are disabled. To inspect the event queue locally, run the following command in
+`ui/`, use the forms against a local server, then inspect `window.dataLayer` in
+the browser console. Debug mode keeps the queue in the browser.
+
+```sh
+VITE_ANALYTICS_DEBUG=true VITE_GA_MEASUREMENT_ID=G-TEST000001 npm start
+```
+
+Deployment prerequisites and the GA4 Realtime check are in the
+[Cloud Run setup guide](docs/deploy.md#enable-analytics-on-an-existing-deployment).
+
 ## API and compatibility
 
 `api/openapi.yaml` is the contract. `ui/src/api-types.ts` and `docs/index.html` are

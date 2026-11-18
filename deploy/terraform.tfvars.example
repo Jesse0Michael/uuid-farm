@@ -3,3 +3,7 @@
 project_id = "your-firebase-project"
 region     = "us-central1"
 image      = "us-central1-docker.pkg.dev/your-firebase-project/uuid-farm/app@sha256:REPLACE_WITH_64_HEX_DIGEST"
+
+# GA Admin > Account details, and the public origin visitors use for UUID Farm.
+analytics_account_id = "123456789"
+analytics_site_url   = "https://uuid-farm-123456789012.us-central1.run.app"

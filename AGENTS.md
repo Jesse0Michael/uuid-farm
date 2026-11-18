@@ -35,7 +35,7 @@ when a creature is picked up or falls offscreen. Accounts and galleries remain o
   authentication, runtime identity, and optional creation of a new Firestore database.
 - `deploy/`: Terraform for the combined Cloud Run UI/API service and image revisions.
 - `.github/workflows/`: checks, tag-triggered GHCR publishing, and Cloud Run deployment
-  after successful `master` checks. See `docs/deploy.md` for bootstrap and the five GitHub
+  after successful `master` checks. See `docs/deploy.md` for bootstrap and the GitHub
   variables; use the existing Firebase project's ID for `GCP_PROJECT_ID`.
 
 ## Commands and checks
@@ -108,5 +108,7 @@ visits. Statistics count current state, not lifetime events.
 
 The service uses standard Google Application Default Credentials. Configuration:
 `GOOGLE_CLOUD_PROJECT`, `PORT`, `UI_DIR`, and optional `FIRESTORE_EMULATOR_HOST`.
+Cloud Run supplies public browser analytics settings through `GA_MEASUREMENT_ID`
+and `ANALYTICS_HOSTNAME`. Keep UUIDs, names, and form contents out of analytics.
 The server serves `ui/dist` and the API together on Cloud Run. The original Heroku
 backend is retired. Keep Firestore as the database.

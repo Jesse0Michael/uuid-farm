@@ -1,6 +1,20 @@
 # This file is maintained automatically by "terraform init".
 # Manual edits may be lost in future updates.
 
+provider "registry.terraform.io/breymander/google-analytics" {
+  version     = "0.1.0"
+  constraints = "0.1.0"
+  hashes = [
+    "h1:Nq7qiPA/30NPZiiAHFLlno2/wvpAQOSaDhQvqde+KVk=",
+    "zh:01461ebe1f14584ae943166016e72905133538deabc29e7878e7a86bdbb1bfbd",
+    "zh:3dfa64472ed9e9ffba36c0286a2b2b7838c967de6a4b8790d04fca3c8273d0fd",
+    "zh:435a0a9caa27d2e9c15d7a4f1bb597a4d6af326ab2dd57da592dac9a67c953eb",
+    "zh:bd083f29f93d98704e27a1b3617461723667ed888dfda88b4f1e76509e9e88aa",
+    "zh:cd9bc59541f31d212ed69d55c4f0b0e1e8e2e0b5fded8ff45aa185be4caed2f8",
+    "zh:d7ba46bc41dfa54e03dfe7cc8e43017ce88e2b3ad3144f7304fe931f44ebf93a",
+  ]
+}
+
 provider "registry.terraform.io/hashicorp/google" {
   version     = "7.46.2"
   constraints = "~> 7.0"

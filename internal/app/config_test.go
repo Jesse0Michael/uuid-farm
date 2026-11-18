@@ -15,6 +15,8 @@ func TestConfig(t *testing.T) {
 			t.Setenv("PORT", tc.port)
 			t.Setenv("GOOGLE_CLOUD_PROJECT", "demo-config")
 			t.Setenv("UI_DIR", "test-ui")
+			t.Setenv("GA_MEASUREMENT_ID", "G-FARM123")
+			t.Setenv("ANALYTICS_HOSTNAME", "farm.example")
 			t.Setenv("LOG_LEVEL", "DEBUG")
 			cfg, err := config.New[Config]()
 			if err == nil {
@@ -25,6 +27,9 @@ func TestConfig(t *testing.T) {
 			}
 			if tc.valid && (cfg.Project != "demo-config" || cfg.UIDir != "test-ui" || cfg.Logger.Level != "DEBUG" || cfg.HTTP.Port != 8089) {
 				t.Fatalf("environment not preserved: %+v", cfg)
+			}
+			if tc.valid && cfg.Analytics != (analyticsConfig{MeasurementID: "G-FARM123", Hostname: "farm.example"}) {
+				t.Fatalf("analytics settings=%+v", cfg.Analytics)
 			}
 		})
 	}

@@ -10,10 +10,17 @@ import (
 // Config preserves the existing environment variables. Nested helper configs
 // opt out of CLI parsing because go-arg only supports flat fields.
 type Config struct {
-	HTTP    httpserver.Config `arg:"-"`
-	Logger  logger.Config     `arg:"-"`
-	Project string            `envconfig:"GOOGLE_CLOUD_PROJECT" default:"uuid-farm"`
-	UIDir   string            `envconfig:"UI_DIR" default:"ui/dist"`
+	HTTP      httpserver.Config `arg:"-"`
+	Logger    logger.Config     `arg:"-"`
+	Project   string            `envconfig:"GOOGLE_CLOUD_PROJECT" default:"uuid-farm"`
+	UIDir     string            `envconfig:"UI_DIR" default:"ui/dist"`
+	Analytics analyticsConfig   `arg:"-"`
+}
+
+// analyticsConfig contains only settings that may be published to browsers.
+type analyticsConfig struct {
+	MeasurementID string `envconfig:"GA_MEASUREMENT_ID" json:"measurementId"`
+	Hostname      string `envconfig:"ANALYTICS_HOSTNAME" json:"hostname"`
 }
 
 func (c Config) Validate() error {

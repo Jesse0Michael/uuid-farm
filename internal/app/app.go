@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -39,7 +41,7 @@ func Run() error {
 			slog.Warn("close Firestore client", "err", err)
 		}
 	}()
-	router := newHandler(store.New(client), cfg.UIDir)
+	router := newHandler(store.New(client), cfg)
 	server := httpserver.New(cfg.HTTP, routeProvider{router})
 	server.ReadHeaderTimeout = 5 * time.Second
 	server.ReadTimeout = 15 * time.Second
@@ -66,11 +68,20 @@ func Run() error {
 
 // Mount static files with an all-method fallback; a GET-only root pattern
 // conflicts with the API's all-method /v1/ fallback in net/http.ServeMux.
-func newHandler(service api.Service, staticDir string) *http.ServeMux {
+func newHandler(service api.Service, cfg Config) *http.ServeMux {
 	router := api.NewRouter(service)
 	// Cloud Run reserves paths ending in z at its public frontend.
 	router.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
-	files := http.FileServer(http.Dir(staticDir))
+	// The same UI image can serve different Analytics streams across deployments.
+	settings, _ := json.Marshal(cfg.Analytics) // Both fields are strings.
+	script := append([]byte("window.uuidFarmAnalytics = "), settings...)
+	script = append(script, ';', '\n')
+	router.HandleFunc("GET /analytics-config.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		http.ServeContent(w, r, "analytics-config.js", time.Time{}, bytes.NewReader(script))
+	})
+	files := http.FileServer(http.Dir(cfg.UIDir))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
