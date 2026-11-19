@@ -6,6 +6,7 @@ provider "registry.terraform.io/breymander/google-analytics" {
   constraints = "0.1.0"
   hashes = [
     "h1:Nq7qiPA/30NPZiiAHFLlno2/wvpAQOSaDhQvqde+KVk=",
+    "h1:ovQfIXFc3Kv/hfdgBd+gl8RNR2DvhoFFQibjdH0l8EU=",
     "zh:01461ebe1f14584ae943166016e72905133538deabc29e7878e7a86bdbb1bfbd",
     "zh:3dfa64472ed9e9ffba36c0286a2b2b7838c967de6a4b8790d04fca3c8273d0fd",
     "zh:435a0a9caa27d2e9c15d7a4f1bb597a4d6af326ab2dd57da592dac9a67c953eb",

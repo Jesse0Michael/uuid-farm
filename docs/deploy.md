@@ -243,6 +243,17 @@ terraform -chdir=deploy/bootstrap validate
 terraform -chdir=deploy/bootstrap test
 ```
 
+When adding or updating providers, generate checksums for local macOS development
+and GitHub's Linux runners before committing the lock files:
+
+```sh
+terraform -chdir=deploy providers lock -platform=darwin_arm64 -platform=linux_amd64
+terraform -chdir=deploy/bootstrap providers lock -platform=darwin_arm64 -platform=linux_amd64
+```
+
+CI uses `-lockfile=readonly`, so each platform needs its unpacked provider checksum
+committed. The commands above verify the published packages and record those checksums.
+
 Do not run an authenticated Terraform plan or apply merely to validate an infrastructure
 edit. Cloud resources, production data, and GitHub configuration are only changed by the
 explicit bootstrap and deployment steps above.
